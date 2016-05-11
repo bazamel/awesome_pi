@@ -1,0 +1,1 @@
+Pour bouger la souris utiliser PyAutoGUI (sudo pip install PyAutoGUI) (multi plateform)

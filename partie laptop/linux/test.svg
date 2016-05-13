@@ -1,4 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
 
-<svg xmlns="http://www.w3.org/2000/svg" version="1.1" width="464" height="40">
-<line x1="232" y1="20" x2="459" y2="35" stroke="red" /></svg>
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" width="784" height="900">
+<line x1="392" y1="450" x2="533" y2="397" stroke="red" /><line x1="533" y1="397" x2="687" y2="338" stroke="red" /><line x1="687" y1="338" x2="778" y2="224" stroke="red" /><line x1="778" y1="224" x2="779" y2="84" stroke="red" /><line x1="779" y1="84" x2="686" y2="12" stroke="red" /><line x1="686" y1="12" x2="583" y2="5" stroke="red" /><line x1="583" y1="5" x2="492" y2="19" stroke="red" /><line x1="492" y1="19" x2="450" y2="137" stroke="red" /><line x1="450" y1="137" x2="441" y2="270" stroke="red" /><line x1="441" y1="270" x2="441" y2="284" stroke="red" /><line x1="441" y1="284" x2="441" y2="312" stroke="red" /><line x1="441" y1="312" x2="441" y2="326" stroke="red" /><line x1="441" y1="326" x2="450" y2="341" stroke="red" /></svg>

@@ -19,7 +19,7 @@ while True:
             print allFinger
             mouvement=Mouvements(allFinger)
             mouvement.save_to_svg("test.svg")
-            if mouvement.look_like(Mouvements.read_from_file("mouvSouris"),100):
+            if mouvement.look_like(Mouvements.read_from_file("mouvSouris"),90):
                 print "ca marche"
         else:
             tab.append((x,y))

@@ -2,6 +2,7 @@
 
 import os
 import pickle
+import math
 
 class Mouvements():
     """docstring for """
@@ -31,7 +32,7 @@ class Mouvements():
             fichier.write('</svg>')
 
     #compare deux mouvement pour voir si il se ressemble
-    def look_like(self,mouv, sensibilite=100):
+    def look_like(self,mouv, sensibilite=65):
         #si ce sont exactement les memes ont valide
         if self.tabMouvementDoigt== mouv.tabMouvementDoigt:
             return True
@@ -40,11 +41,11 @@ class Mouvements():
             return False
         i=0
         while i<len(self.tabMouvementDoigt):
-            if(abs(len(self.tabMouvementDoigt[i])-len(mouv.tabMouvementDoigt[i]))>10):
+            if(abs(len(self.tabMouvementDoigt[i])-len(mouv.tabMouvementDoigt[i]))/len(mouv.tabMouvementDoigt[i])>0.50):
                 return False
             j=0
             k=0
-            error=0
+            #error=0
             meFaster=(len(self.tabMouvementDoigt[i])<len(mouv.tabMouvementDoigt[i]))
             while (j<len(self.tabMouvementDoigt[i])-1 and k<len(mouv.tabMouvementDoigt[i])-1):
                 l=1
@@ -57,24 +58,26 @@ class Mouvements():
                     mdx=mouv.tabMouvementDoigt[i][k][0]-mouv.tabMouvementDoigt[i][k+m][0]
                     mdy=mouv.tabMouvementDoigt[i][k][1]-mouv.tabMouvementDoigt[i][k+m][1]+0.001
                     md=mdx/mdy
-                    print i,j,k,l,m,sd,md
-                    #en fonction de la sensibilite on valide ou  pas la portion de déplacement
-                    if (abs(sd-md)<sensibilite and (sdx/(mdx+0.001)>=0 and sdy/(mdy+0.001)>=0)):
+                    angle= math.degrees(math.acos((sdx*mdx+sdy*mdy)/(math.sqrt(sdx*sdx+sdy*sdy)*math.sqrt(mdx*mdx+mdy*mdy))))
+                    print i,j,k,l,m,angle
+                    #grace au produit scalaire on en deduit si on rentre dans notre marge de tolerance
+                    if angle <sensibilite:
                         break
+
 
                     # on a le droit a une erreure au dessus de la marge par doigt
-                    if error==0:
-                        error+=1
-                        break
+                    #if error==0:
+                    #    error+=1
+                    #    break
 
                     #test pour voir si il n'y a pas des positions que l'on aurait loupé
-                    if meFaster and m<5 and k+m<len(mouv.tabMouvementDoigt[i])-1:
+                    if meFaster and m<3 and k+m<len(mouv.tabMouvementDoigt[i])-1:
                         m=m+1
-                    elif meFaster and l<5 and j+l<len(self.tabMouvementDoigt[i])-1:
+                    elif meFaster and l<3 and j+l<len(self.tabMouvementDoigt[i])-1:
                         l=l+1
-                    elif (not meFaster) and l<5 and j+l<len(self.tabMouvementDoigt[i])-1:
+                    elif (not meFaster) and l<3 and j+l<len(self.tabMouvementDoigt[i])-1:
                         l=l+1
-                    elif (not meFaster) and m<5 and k+m<len(mouv.tabMouvementDoigt[i])-1:
+                    elif (not meFaster) and m<3 and k+m<len(mouv.tabMouvementDoigt[i])-1:
                         m=m+1
                     else:
                         return False

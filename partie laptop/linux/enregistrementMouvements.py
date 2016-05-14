@@ -25,4 +25,4 @@ while True:
             oldx=x
             oldy=y
 
-    time.sleep(0.05)
+    time.sleep(0.03)

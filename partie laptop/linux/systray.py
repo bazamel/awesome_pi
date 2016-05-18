@@ -6,11 +6,13 @@ import gtk
 import pynotify
 import pango
 import calibrage
+import conf
 
 class SystrayIconApp:
 	ECRTACT=0
 	TCHPAD=1
 	PRNOTE=2
+
 
 	def __init__(self):
 		self.mode = SystrayIconApp.ECRTACT
@@ -18,6 +20,8 @@ class SystrayIconApp:
 		self.tray.set_from_file("icon.png")
 		self.tray.connect('popup-menu', self.on_right_click)
 		self.tray.set_tooltip(('Sample tray app'))
+		self.conf=conf.conf.start_conf()
+
 
 
 	def on_right_click(self, icon, event_button, event_time):
@@ -57,6 +61,13 @@ class SystrayIconApp:
 
 		self.addSeparator(menu)
 
+		#configuration
+
+		conf=gtk.MenuItem("configuration")
+		conf.show()
+		menu.append(conf)
+		conf.connect('activate', self.on_conf_click)
+
 		# add quit item
 		quit = gtk.MenuItem("Quit")
 		quit.show()
@@ -93,7 +104,12 @@ class SystrayIconApp:
 		n = pynotify.Notification("SMATCH", "prise de note", "/home/moubinous/Documents/PI/awesome_pi/partie laptop/linux/icon.png",)
 		n.show()
 
+	def on_conf_click(self,widget):
+		conf.confWindow(self)
+		#return
 
+	def reload_conf(self):
+		self.conf=conf.conf.start_conf()
 
 	def  show_calibrage_dialog(self, widget):
 		calibrage.calibrageWindows()

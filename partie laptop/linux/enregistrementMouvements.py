@@ -18,8 +18,12 @@ while True:
             allFinger.append(tab)
             print allFinger
             mouvement=Mouvements(allFinger)
-            mouvement.save_to_file("mouvSouris")
-            mouvement.save_to_svg("mouvSouris.svg")
+            if(pyautogui.confirm("voulez vous sauvegarder?")=="OK"):
+                mouvement.save_to_file(pyautogui.prompt("nom du fichier?"))
+                break
+            oldx,oldy=pyautogui.position()
+            #mouvement.save_to_file("mouvSouris")
+            #mouvement.save_to_svg("mouvSouris.svg")
         else:
             tab.append((x,y))
             oldx=x

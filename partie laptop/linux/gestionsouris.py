@@ -10,7 +10,7 @@ tab=[]
 
 #dict={"presentation/mouv_droite" : presentation.fleche_droite, "presentation/mouv_gauche" : presentation.fleche_gauche}
 #exception={gestionAction.unDoigt : gestionAction.rien}
-#GA= gestionAction.gestionAction(dict, exception)
+#GA= gestionAction.gestionAction(dict,exception)
 #GA.save_to_file("presentation.conf")
 GA = gestionAction.gestionAction.read_from_file("presentation.conf")
 

@@ -5,6 +5,7 @@ from Mouvement import Mouvements
 import pyautogui
 import pickle
 import importlib
+import os
 
 class gestionAction():
     """docstring for """
@@ -27,12 +28,16 @@ class gestionAction():
 
 
     def save_to_file(self,filename):
+        filename="conf/"+filename
+        if ((not os.path.isdir(filename.rsplit('/',1)[0])) and os.path.exists(filename.rsplit('/',1)[0])) or not os.path.exists(filename.rsplit('/',1)[0]):
+            os.makedirs(filename.rsplit('/',1)[0])
         with open(filename,"wb") as fichier:
             pickler = pickle.Pickler(fichier)
             pickler.dump(self)
 
     @staticmethod
     def read_from_file(filename):
+        filename = "conf/"+filename
         with open(filename,"rb") as fichier:
             unpickler=pickle.Unpickler(fichier)
             conf=unpickler.load()

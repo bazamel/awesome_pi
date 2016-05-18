@@ -21,7 +21,10 @@ class Mouvements():
 
     #enregistre le mouvement dans un fichier
     def save_to_file(self,filename):
-        with open("mouv/"+filename,"wb") as fichier:
+        pathfile="mouv/"+filename
+        if ((not os.path.isdir(pathfile.rsplit('/',1)[0])) and os.path.exists(pathfile.rsplit('/',1)[0])) or not os.path.exists(pathfile.rsplit('/',1)[0]):
+            os.makedirs(pathfile.rsplit('/',1)[0])
+        with open(pathfile,"wb") as fichier:
             pickler = pickle.Pickler(fichier)
             pickler.dump(self)
 
@@ -35,7 +38,7 @@ class Mouvements():
             for soustab in tab:
                 i=0
                 while i < len(soustab)-1:
-                    fichier.write('<line x1="'+str(soustab[i][0]+xmax+5)+'" y1="'+str(soustab[i][1]+ymax+5)+'" x2="'+str(soustab[i+1][0]+xmax+5)+'" y2="'+str(soustab[i+1][1]+ymax+5)+'" stroke="red" />')
+                    fichier.write('<line x1="'+str(soustab[i][0]+xmax+5)+'" y1="'+str(soustab[i][1]+ymax+5)+'" x2="'+str(soustab[i+1][0]+xmax+5)+'" y2="'+str(soustab[i+1][1]+ymax+5)+'" stroke="red"  style="stroke-width:10"/>')
                     i=i+1
 
             fichier.write('</svg>')
@@ -68,7 +71,7 @@ class Mouvements():
                     mdy=mouv.tabMouvementDoigts[i][k][1]-mouv.tabMouvementDoigts[i][k+m][1]+0.001
                     md=mdx/mdy
                     angle= math.degrees(math.acos((sdx*mdx+sdy*mdy)/(math.sqrt(sdx*sdx+sdy*sdy)*math.sqrt(mdx*mdx+mdy*mdy))))
-                    print i,j,k,l,m,angle
+                    #print i,j,k,l,m,angle
                     #grace au produit scalaire on en deduit si on rentre dans notre marge de tolerance
                     if angle <mouv.sensibilite:
                         break

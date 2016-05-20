@@ -53,7 +53,7 @@
               <object class="GtkFileChooserButton" id="fileEcrTact">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
-                <signal name="file-set" handler="conf_changed" swapped="no"/>
+                <signal name="file-set" handler="cfg_changed" swapped="no"/>
               </object>
               <packing>
                 <property name="left_attach">1</property>
@@ -66,7 +66,7 @@
               <object class="GtkFileChooserButton" id="fileTchPad">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
-                <signal name="file-set" handler="conf_changed" swapped="no"/>
+                <signal name="file-set" handler="cfg_changed" swapped="no"/>
               </object>
               <packing>
                 <property name="left_attach">1</property>
@@ -79,7 +79,7 @@
               <object class="GtkFileChooserButton" id="filePrNote">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
-                <signal name="file-set" handler="conf_changed" swapped="no"/>
+                <signal name="file-set" handler="cfg_changed" swapped="no"/>
               </object>
               <packing>
                 <property name="left_attach">1</property>
@@ -110,7 +110,7 @@
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
                 <property name="use_action_appearance">False</property>
-                <signal name="clicked" handler="save_conf" swapped="no"/>
+                <signal name="clicked" handler="save_cfg" swapped="no"/>
               </object>
               <packing>
                 <property name="top_attach">4</property>
@@ -118,11 +118,11 @@
               </packing>
             </child>
             <child>
-              <object class="GtkComboBox" id="confFileChoose">
+              <object class="GtkComboBox" id="cfgFileChoose">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="button_sensitivity">on</property>
-                <signal name="changed" handler="conf_choose_changed" swapped="no"/>
+                <signal name="changed" handler="cfg_choose_changed" swapped="no"/>
               </object>
               <packing>
                 <property name="right_attach">2</property>
@@ -145,9 +145,10 @@
             <property name="visible">True</property>
             <property name="can_focus">False</property>
             <child>
-              <object class="GtkComboBox" id="combobox2">
+              <object class="GtkComboBox" id="confFileChoose">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
+                <signal name="changed" handler="conf_choose_changed" swapped="no"/>
               </object>
               <packing>
                 <property name="expand">True</property>
@@ -201,47 +202,11 @@
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
                     <child>
-                      <object class="GtkVBox" id="vbox1">
+                      <object class="GtkVBox" id="listMouvFunc">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
                         <child>
-                          <object class="GtkHBox" id="hbox2">
-                            <property name="visible">True</property>
-                            <property name="can_focus">False</property>
-                            <child>
-                              <object class="GtkFileChooserButton" id="filechooserbutton5">
-                                <property name="visible">True</property>
-                                <property name="can_focus">False</property>
-                              </object>
-                              <packing>
-                                <property name="expand">True</property>
-                                <property name="fill">True</property>
-                                <property name="position">0</property>
-                              </packing>
-                            </child>
-                            <child>
-                              <object class="GtkEntry" id="entry1">
-                                <property name="visible">True</property>
-                                <property name="can_focus">True</property>
-                                <property name="invisible_char">•</property>
-                                <property name="invisible_char_set">True</property>
-                                <property name="primary_icon_activatable">False</property>
-                                <property name="secondary_icon_activatable">False</property>
-                                <property name="primary_icon_sensitive">True</property>
-                                <property name="secondary_icon_sensitive">True</property>
-                              </object>
-                              <packing>
-                                <property name="expand">True</property>
-                                <property name="fill">True</property>
-                                <property name="position">1</property>
-                              </packing>
-                            </child>
-                          </object>
-                          <packing>
-                            <property name="expand">True</property>
-                            <property name="fill">True</property>
-                            <property name="position">0</property>
-                          </packing>
+                          <placeholder/>
                         </child>
                         <child>
                           <placeholder/>
@@ -271,6 +236,7 @@
                     <property name="can_focus">True</property>
                     <property name="receives_default">True</property>
                     <property name="use_action_appearance">False</property>
+                    <signal name="clicked" handler="save_conf" swapped="no"/>
                   </object>
                   <packing>
                     <property name="expand">True</property>

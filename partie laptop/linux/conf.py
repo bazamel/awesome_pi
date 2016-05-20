@@ -10,6 +10,7 @@ import gobject
 import pyautogui
 import time
 from Mouvement import Mouvements
+import gestionAction
 
 import os
 
@@ -45,14 +46,25 @@ class conf:
         return conf.read_from_file("conf.cfg")
 
     @staticmethod
+    def list_cfg_file():
+        files=os.listdir("conf")
+        cfgfiles=[]
+        for file in files:
+            if(file.split(".")[-1]=="cfg"):
+                cfgfiles.append(file)
+
+        return cfgfiles
+
+    @staticmethod
     def list_conf_file():
         files=os.listdir("conf")
         conffiles=[]
         for file in files:
-            if(file.split(".")[-1]=="cfg"):
+            if(file.split(".")[-1]=="conf"):
                 conffiles.append(file)
 
         return conffiles
+
 
 
 class confWindow:
@@ -69,20 +81,66 @@ class confWindow:
         self.mouvFileOpener= interface.get_object("OpenMouvFile")
         self.mouvFileOpener.set_current_folder("mouv")
         self.imgMouvSvg= interface.get_object("imMouvSVG")
+
+
+        self.listMouvFunc = interface.get_object("listMouvFunc")
+        self.add_item_to_list()
+
         interface.connect_signals(self)
+
+        #ComboBox init
+        cell = gtk.CellRendererText()
+        self.cfgFileChooser = interface.get_object("cfgFileChoose")
+        self.cfgFileChooser.pack_start(cell, True)
+        self.cfgFileChooser.add_attribute(cell,'text',0)
+        self.store=gtk.ListStore(gobject.TYPE_STRING)
+        self.init_list_cfg()
 
         #ComboBox init
         cell = gtk.CellRendererText()
         self.confFileChooser = interface.get_object("confFileChoose")
         self.confFileChooser.pack_start(cell, True)
         self.confFileChooser.add_attribute(cell,'text',0)
-        self.store=gtk.ListStore(gobject.TYPE_STRING)
-        self.init_list()
+        self.storeconf=gtk.ListStore(gobject.TYPE_STRING)
+        self.init_list_conf()
 
-    def conf_changed(self,widget):
-        self.confFileChooser.set_active(len(self.store)-1)
+
+    def add_item_to_list(self,widget=None,filename=None,func=None):
+        if (widget!=None):
+            self.confFileChooser.set_active(len(self.storeconf)-1)
+            if widget.get_parent()!=self.listMouvFunc.get_children()[len(self.listMouvFunc.get_children())-1]:
+                return
+        fileChooser = gtk.FileChooserButton("Select a File", backend=None)
+        fileChooser.set_current_folder("mouv/")
+        fileChooser.connect("file-set", self.add_item_to_list)
+        entry = gtk.Entry()
+        hbox = gtk.HBox(False)
+        hbox.add(fileChooser)
+        hbox.add(entry)
+        self.listMouvFunc.add(hbox)
+        hbox.show()
+        entry.show()
+        fileChooser.show()
+        if (filename is not None and func is not None):
+            entry.set_text(func)
+            fileChooser.set_filename(filename)
+
+
+    def cfg_changed(self,widget):
+        self.cfgFileChooser.set_active(len(self.store)-1)
+
 
     def conf_choose_changed(self, widget):
+        file=widget.get_active_text()
+        if file!="nouveau" and file is not None:
+            for child in self.listMouvFunc.get_children():
+                self.listMouvFunc.remove(child)
+            GA = gestionAction.gestionAction.read_from_file(file+".conf")
+            for key in GA.dict.keys():
+                func=GA.dict[key]
+                self.add_item_to_list(None,"mouv/"+key,func.__module__+"."+func.__name__)
+
+    def cfg_choose_changed(self, widget):
         file=widget.get_active_text()
         if file!="personalisé" and file is not None:
             config=conf.read_from_file(file+".cfg")
@@ -90,16 +148,47 @@ class confWindow:
             self.fileTchPad.set_filename("conf/"+config.get_file(SystrayIconApp.TCHPAD))
             self.filePrNote.set_filename("conf/"+config.get_file(SystrayIconApp.PRNOTE))
 
-    def init_list(self):
-        self.store.clear()
+    def init_list_conf(self):
+        self.storeconf.clear()
         for file in conf.list_conf_file():
-            self.store.append([file.rsplit(".",1)[0]])
-        self.store.append(["personalisé"])
-        self.confFileChooser.set_model(self.store)
+            self.storeconf.append([file.rsplit(".",1)[0]])
+        self.storeconf.append(["nouveau"])
+        self.confFileChooser.set_model(self.storeconf)
         self.confFileChooser.set_active(0)
 
+    def init_list_cfg(self):
+        self.store.clear()
+        for file in conf.list_cfg_file():
+            self.store.append([file.rsplit(".",1)[0]])
+        self.store.append(["personalisé"])
+        self.cfgFileChooser.set_model(self.store)
+        self.cfgFileChooser.set_active(0)
+
+
     def save_conf(self,widget):
-        dict={SystrayIconApp.ECRTACT : self.fileEcrTact.get_filename().rsplit("/",1)[1] , SystrayIconApp.PRNOTE : self.filePrNote.get_filename().rsplit("/",1)[1], SystrayIconApp.TCHPAD :self.fileTchPad.get_filename().rsplit("/",1)[1]   }
+        dict={}
+        for child in self.listMouvFunc.get_children():
+            c=child.get_children()
+            if (c[0].get_filename()==None):
+                continue
+            file = c[0].get_filename().rsplit("mouv/",1)[1]
+            stringFunc=c[1].get_text()
+            module=stringFunc.split(".")[0]
+            funcname=stringFunc.split(".")[1]
+            m=__import__(module)
+            f=getattr(m,funcname)
+            dict[file]=f
+        GA = gestionAction.gestionAction(dict)
+        namefile=pyautogui.prompt("nom du fichier?")
+        if (namefile=="personalisé" or namefile=="default"):
+            pyautogui.alert("interdit de sauvegarder au nom personalisé ou default")
+            return
+        GA.save_to_file(namefile+".conf")
+        self.init_list_conf()
+
+
+    def save_cfg(self,widget):
+        dict={SystrayIconApp.ECRTACT : self.fileEcrTact.get_filename().rsplit("conf/",1)[1] , SystrayIconApp.PRNOTE : self.filePrNote.get_filename().rsplit("conf/",1)[1], SystrayIconApp.TCHPAD :self.fileTchPad.get_filename().rsplit("conf/",1)[1]   }
         config = conf(dict)
         file=pyautogui.prompt("nom du fichier?")
         if (file=="personalisé" or file=="default"):
@@ -108,7 +197,7 @@ class confWindow:
         config.save_to_file(file+".cfg")
         config.use_this_conf()
         self.systray.reload_conf()
-        self.init_list()
+        self.init_list_cfg()
 
     def open_mouv_file(self,widget):
         file=widget.get_filename().rsplit("mouv/",1)[1]

@@ -12,7 +12,6 @@ import time
 from Mouvement import Mouvements
 import gestionAction
 from gestionsouris import gestionSouris
-
 import os
 
 class conf:
@@ -73,7 +72,6 @@ class confWindow:
     def __init__(self,systray):
         interface = gtk.Builder()
         interface.add_from_file('glade/confwindow.glade')
-
         self.systray=systray
         # initfileconf
         self.fileEcrTact = interface.get_object("fileEcrTact")

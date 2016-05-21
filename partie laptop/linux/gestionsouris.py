@@ -3,7 +3,6 @@ import time
 from Mouvement import Mouvements
 from threading import Thread, RLock
 import gestionAction
-#import presentation
 
 
 

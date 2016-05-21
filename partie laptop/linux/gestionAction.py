@@ -19,7 +19,7 @@ class gestionAction():
     def compare_to_mouvement(self,mouv):
         for excpt in self.exception.keys():
             if (excpt(mouv)):
-                self.exception[excpt]()
+                self.exception[excpt](mouv)
                 return
 
         for filename in self.dict.keys():
@@ -52,7 +52,7 @@ def left_click():
 def right_click():
     pyautogui.rightClick()
 
-def rien():
+def rien(mouv):
     return
 
 def unDoigt(mouv):

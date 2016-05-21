@@ -8,6 +8,7 @@ import pango
 import calibrage
 import conf
 from gestionsouris import gestionSouris
+import signal
 
 class SystrayIconApp:
 	ECRTACT=0
@@ -24,7 +25,6 @@ class SystrayIconApp:
 		self.conf=conf.conf.start_conf()
 		self.GS = gestionSouris(self.conf.dict[self.mode])
 		self.GS.start()
-		print self.GS.is_alive()
 
 
 
@@ -129,9 +129,8 @@ class SystrayIconApp:
 		gtk.main_quit()
 
 
-
 if __name__ == "__main__":
-	SystrayIconApp()
+	myapp=SystrayIconApp()
 	gtk.gdk.threads_init()
 	gtk.threads_enter()
 	gtk.main()

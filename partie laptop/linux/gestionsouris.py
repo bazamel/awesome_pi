@@ -1,36 +1,54 @@
 import pyautogui
 import time
 from Mouvement import Mouvements
+from threading import Thread, RLock
 import gestionAction
 #import presentation
 
-oldx,oldy=pyautogui.position()
-mouv=False
-tab=[]
 
-#dict={"presentation/mouv_droite" : presentation.fleche_droite, "presentation/mouv_gauche" : presentation.fleche_gauche}
-#exception={gestionAction.unDoigt : gestionAction.rien}
-#GA= gestionAction.gestionAction(dict,exception)
-#GA.save_to_file("presentation.conf")
-GA = gestionAction.gestionAction.read_from_file("presentation.conf")
 
-while True:
-    x,y=pyautogui.position()
-    if (not mouv) and (x!=oldx or y!=oldy):
-        mouv=True;
+class gestionSouris(Thread):
+    """docstring for """
+    def __init__(self, filename):
+        Thread.__init__(self)
+        self.stopped = False
+        self.lock = RLock()
+        self.edit_conf(filename)
+
+
+    def edit_conf(self,filename):
+        with self.lock:
+            self.GA = gestionAction.gestionAction.read_from_file(filename)
+
+    def stop(self):
+        with self.lock:
+            self.stopped=True
+
+    def isStopped(self):
+        with self.lock:
+            return self.stopped
+
+    def run(self):
+        oldx,oldy=pyautogui.position()
+        mouv=False
         tab=[]
-        print "reset"
-    if mouv:
-        if(x==oldx and y==oldy):
-            mouv=False
-            allFinger=[]
-            allFinger.append(tab)
-            mouvement=Mouvements(allFinger)
-            GA.compare_to_mouvement(mouvement)
+        while (not self.isStopped()):
+            x,y=pyautogui.position()
+            if (not mouv) and (x!=oldx or y!=oldy):
+                mouv=True;
+                tab=[]
+            if mouv:
+                if(x==oldx and y==oldy):
+                    mouv=False
+                    allFinger=[]
+                    allFinger.append(tab)
+                    mouvement=Mouvements(allFinger)
+                    with self.lock:
+                        self.GA.compare_to_mouvement(mouvement)
 
-        else:
-            tab.append((x,y))
-            oldx=x
-            oldy=y
+                else:
+                    tab.append((x,y))
+                    oldx=x
+                    oldy=y
 
-    time.sleep(0.03)
+            time.sleep(0.03)

@@ -11,6 +11,7 @@ import pyautogui
 import time
 from Mouvement import Mouvements
 import gestionAction
+from gestionsouris import gestionSouris
 
 import os
 
@@ -218,6 +219,8 @@ class confWindow:
 
     # a changer lorsque l'on recuperera les positions
     def record_mouvement(self,widget):
+        self.systray.GS.stop()
+        self.systray.GS.join()
         pyautogui.alert("appuyé sur entré lorsque vous êtes près a enregistrer")
         oldx,oldy=pyautogui.position()
         mouv=False
@@ -242,6 +245,8 @@ class confWindow:
                     oldy=y
 
             time.sleep(0.03)
+        self.systray.GS = gestionSouris(self.systray.conf.dict[self.systray.mode])
+        self.systray.GS.start()
 
     def save_mouvement(self,widget):
         self.mouvement.save_to_file(pyautogui.prompt("nom du fichier?"))

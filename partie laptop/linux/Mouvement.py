@@ -6,7 +6,7 @@ import math
 
 class Mouvements():
     """docstring for """
-    def __init__(self, tabMouvementDoigts, sensibilite=65):
+    def __init__(self, tabMouvementDoigts, sensibilite=35):
         #1 tablepar doigt
         self.tabMouvementDoigts = tabMouvementDoigts
         self.nbrDoigt=len(tabMouvementDoigts)

@@ -7,6 +7,7 @@ import pynotify
 import pango
 import calibrage
 import conf
+from gestionsouris import gestionSouris
 
 class SystrayIconApp:
 	ECRTACT=0
@@ -21,6 +22,11 @@ class SystrayIconApp:
 		self.tray.connect('popup-menu', self.on_right_click)
 		self.tray.set_tooltip(('Sample tray app'))
 		self.conf=conf.conf.start_conf()
+		self.GS = gestionSouris(self.conf.dict[self.mode])
+		self.GS.start()
+		print self.GS.is_alive()
+
+
 
 
 
@@ -72,7 +78,7 @@ class SystrayIconApp:
 		quit = gtk.MenuItem("Quit")
 		quit.show()
 		menu.append(quit)
-		quit.connect('activate', gtk.main_quit)
+		quit.connect('activate', self.on_quit)
 
 		menu.popup(None, None, gtk.status_icon_position_menu,
 		           event_button, event_time, self.tray)
@@ -89,6 +95,7 @@ class SystrayIconApp:
 		pynotify.init("image")
 		n = pynotify.Notification("SMATCH", "Ecran Tactile", "/home/moubinous/Documents/PI/awesome_pi/partie laptop/linux/icon.png",)
 		n.show()
+		self.GS.edit_conf(self.conf.dict[self.mode])
 
 
 	def on_tchPad_click(self,widget):
@@ -96,6 +103,7 @@ class SystrayIconApp:
 		pynotify.init("image")
 		n = pynotify.Notification("SMATCH", "touchPad", "/home/moubinous/Documents/PI/awesome_pi/partie laptop/linux/icon.png",)
 		n.show()
+		self.GS.edit_conf(self.conf.dict[self.mode])
 
 
 	def on_prNote_click(self,widget):
@@ -103,6 +111,7 @@ class SystrayIconApp:
 		pynotify.init("image")
 		n = pynotify.Notification("SMATCH", "prise de note", "/home/moubinous/Documents/PI/awesome_pi/partie laptop/linux/icon.png",)
 		n.show()
+		self.GS.edit_conf(self.conf.dict[self.mode])
 
 	def on_conf_click(self,widget):
 		conf.confWindow(self)
@@ -114,9 +123,16 @@ class SystrayIconApp:
 	def  show_calibrage_dialog(self, widget):
 		calibrage.calibrageWindows()
 
+	def on_quit(self,widget):
+		self.GS.stop()
+		self.GS.join()
+		gtk.main_quit()
 
 
 
 if __name__ == "__main__":
 	SystrayIconApp()
+	gtk.gdk.threads_init()
+	gtk.threads_enter()
 	gtk.main()
+	gtk.threads_leave()

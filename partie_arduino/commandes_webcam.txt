@@ -1,0 +1,4 @@
+mjpg_streamer -i "input_uvc.so" -o "output_http.so -p 8080 -w /www/webcam"
+
+http://arduino.local:8080/webcam 
+ http://linino.local:8080/?action=stream

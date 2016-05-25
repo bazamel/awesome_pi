@@ -1,0 +1,254 @@
+#
+# coding=utf-8
+import pygtk
+pygtk.require("2.0")
+
+import pickle
+from systray import SystrayIconApp
+import gtk
+import gobject
+import pyautogui
+import time
+from Mouvement import Mouvements
+import gestionAction
+from gestionsouris import gestionSouris
+import os
+
+class conf:
+    """docstring for """
+    def __init__(self,dict={SystrayIconApp.ECRTACT : "ecrTactDef.conf", SystrayIconApp.PRNOTE : "prNoteDef.conf", SystrayIconApp.TCHPAD : "tchPadDef.conf"  }):
+        #a chaque mode on associe un fichier de conf
+        self.dict=dict
+
+    def save_to_file(self,filename):
+        if filename=="default.cfg":
+            print "interdit de reecrire la save par default"
+            return
+        with open("conf/"+filename,"wb") as fichier:
+            pickler = pickle.Pickler(fichier)
+            pickler.dump(self)
+
+    def use_this_conf(self):
+        return self.save_to_file("conf.cfg")
+
+    def get_file(self,key):
+        return self.dict[key]
+
+    @staticmethod
+    def read_from_file(filename):
+        with open("conf/"+filename, "rb") as fichier:
+            unpickler = pickle.Unpickler(fichier)
+            conf=unpickler.load()
+            return conf
+
+    @staticmethod
+    def start_conf():
+        return conf.read_from_file("conf.cfg")
+
+    @staticmethod
+    def list_cfg_file():
+        files=os.listdir("conf")
+        cfgfiles=[]
+        for file in files:
+            if(file.split(".")[-1]=="cfg"):
+                cfgfiles.append(file)
+
+        return cfgfiles
+
+    @staticmethod
+    def list_conf_file():
+        files=os.listdir("conf")
+        conffiles=[]
+        for file in files:
+            if(file.split(".")[-1]=="conf"):
+                conffiles.append(file)
+
+        return conffiles
+
+
+
+class confWindow:
+    """docstring for """
+    def __init__(self,systray):
+        interface = gtk.Builder()
+        interface.add_from_file('glade/confwindow.glade')
+        self.systray=systray
+        # initfileconf
+        self.fileEcrTact = interface.get_object("fileEcrTact")
+        self.fileTchPad = interface.get_object("fileTchPad")
+        self.filePrNote = interface.get_object("filePrNote")
+        self.mouvFileOpener= interface.get_object("OpenMouvFile")
+        self.mouvFileOpener.set_current_folder("mouv")
+        self.imgMouvSvg= interface.get_object("imMouvSVG")
+
+
+        self.listMouvFunc = interface.get_object("listMouvFunc")
+        self.add_item_to_list()
+
+        interface.connect_signals(self)
+
+        #ComboBox init
+        cell = gtk.CellRendererText()
+        self.cfgFileChooser = interface.get_object("cfgFileChoose")
+        self.cfgFileChooser.pack_start(cell, True)
+        self.cfgFileChooser.add_attribute(cell,'text',0)
+        self.store=gtk.ListStore(gobject.TYPE_STRING)
+        self.init_list_cfg()
+
+        #ComboBox init
+        cell = gtk.CellRendererText()
+        self.confFileChooser = interface.get_object("confFileChoose")
+        self.confFileChooser.pack_start(cell, True)
+        self.confFileChooser.add_attribute(cell,'text',0)
+        self.storeconf=gtk.ListStore(gobject.TYPE_STRING)
+        self.init_list_conf()
+
+
+    def add_item_to_list(self,widget=None,filename=None,func=None):
+        if (widget!=None):
+            self.confFileChooser.set_active(len(self.storeconf)-1)
+            if widget.get_parent()!=self.listMouvFunc.get_children()[len(self.listMouvFunc.get_children())-1]:
+                return
+        fileChooser = gtk.FileChooserButton("Select a File", backend=None)
+        fileChooser.set_current_folder("mouv/")
+        fileChooser.connect("file-set", self.add_item_to_list)
+        entry = gtk.Entry()
+        hbox = gtk.HBox(False)
+        hbox.add(fileChooser)
+        hbox.add(entry)
+        self.listMouvFunc.add(hbox)
+        hbox.show()
+        entry.show()
+        fileChooser.show()
+        if (filename is not None and func is not None):
+            entry.set_text(func)
+            fileChooser.set_filename(filename)
+
+
+    def cfg_changed(self,widget):
+        self.cfgFileChooser.set_active(len(self.store)-1)
+
+
+    def conf_choose_changed(self, widget):
+        file=widget.get_active_text()
+        if file!="nouveau" and file is not None:
+            for child in self.listMouvFunc.get_children():
+                self.listMouvFunc.remove(child)
+            GA = gestionAction.gestionAction.read_from_file(file+".conf")
+            for key in GA.dict.keys():
+                func=GA.dict[key]
+                self.add_item_to_list(None,"mouv/"+key,func.__module__+"."+func.__name__)
+
+    def cfg_choose_changed(self, widget):
+        file=widget.get_active_text()
+        if file!="personalisé" and file is not None:
+            config=conf.read_from_file(file+".cfg")
+            self.fileEcrTact.set_filename("conf/"+config.get_file(SystrayIconApp.ECRTACT))
+            self.fileTchPad.set_filename("conf/"+config.get_file(SystrayIconApp.TCHPAD))
+            self.filePrNote.set_filename("conf/"+config.get_file(SystrayIconApp.PRNOTE))
+
+    def init_list_conf(self):
+        self.storeconf.clear()
+        for file in conf.list_conf_file():
+            self.storeconf.append([file.rsplit(".",1)[0]])
+        self.storeconf.append(["nouveau"])
+        self.confFileChooser.set_model(self.storeconf)
+        self.confFileChooser.set_active(0)
+
+    def init_list_cfg(self):
+        self.store.clear()
+        for file in conf.list_cfg_file():
+            self.store.append([file.rsplit(".",1)[0]])
+        self.store.append(["personalisé"])
+        self.cfgFileChooser.set_model(self.store)
+        self.cfgFileChooser.set_active(0)
+
+
+    def save_conf(self,widget):
+        dict={}
+        for child in self.listMouvFunc.get_children():
+            c=child.get_children()
+            if (c[0].get_filename()==None):
+                continue
+            file = c[0].get_filename().rsplit("mouv/",1)[1]
+            stringFunc=c[1].get_text()
+            module=stringFunc.split(".")[0]
+            funcname=stringFunc.split(".")[1]
+            m=__import__(module)
+            f=getattr(m,funcname)
+            dict[file]=f
+        GA = gestionAction.gestionAction(dict)
+        namefile=pyautogui.prompt("nom du fichier?")
+        if (namefile=="personalisé" or namefile=="default"):
+            pyautogui.alert("interdit de sauvegarder au nom personalisé ou default")
+            return
+        GA.save_to_file(namefile+".conf")
+        self.init_list_conf()
+
+
+    def save_cfg(self,widget):
+        dict={SystrayIconApp.ECRTACT : self.fileEcrTact.get_filename().rsplit("conf/",1)[1] , SystrayIconApp.PRNOTE : self.filePrNote.get_filename().rsplit("conf/",1)[1], SystrayIconApp.TCHPAD :self.fileTchPad.get_filename().rsplit("conf/",1)[1]   }
+        config = conf(dict)
+        file=pyautogui.prompt("nom du fichier?")
+        if (file=="personalisé" or file=="default"):
+            pyautogui.alert("interdit de sauvegarder au nom personalisé ou default")
+            return
+        config.save_to_file(file+".cfg")
+        config.use_this_conf()
+        self.systray.reload_conf()
+        self.init_list_cfg()
+
+    def open_mouv_file(self,widget):
+        file=widget.get_filename().rsplit("mouv/",1)[1]
+        self.mouvement=Mouvements.read_from_file(file).save_to_svg("temp.svg")
+        self.update_picture()
+
+    def update_picture(self):
+        pixbuf = gtk.gdk.pixbuf_new_from_file("mouv/temp.svg")
+        width=pixbuf.get_width()
+        height=pixbuf.get_height()
+        imgwidth=self.imgMouvSvg.get_allocation().width
+        imgheight=self.imgMouvSvg.get_allocation().height
+        scaled_buf = pixbuf.scale_simple(imgwidth,height*imgwidth/width,gtk.gdk.INTERP_BILINEAR)
+        self.imgMouvSvg.set_from_pixbuf(scaled_buf)
+
+    def on_mainWindow_destroy(self, widget):
+        gtk.main_quit()
+
+    # a changer lorsque l'on recuperera les positions
+    def record_mouvement(self,widget):
+        self.systray.GS.stop()
+        self.systray.GS.join()
+        pyautogui.alert("appuyé sur entré lorsque vous êtes près a enregistrer")
+        oldx,oldy=pyautogui.position()
+        mouv=False
+        tab=[]
+        while True:
+            x,y=pyautogui.position()
+            if (not mouv) and (x!=oldx or y!=oldy):
+                mouv=True;
+                tab=[]
+            if mouv:
+                if(x==oldx and y==oldy):
+                    mouv=False
+                    allFinger=[]
+                    allFinger.append(tab)
+                    self.mouvement=Mouvements(allFinger)
+                    self.mouvement.save_to_svg("temp.svg")
+                    self.update_picture()
+                    break
+                else:
+                    tab.append((x,y))
+                    oldx=x
+                    oldy=y
+
+            time.sleep(0.03)
+        self.systray.GS = gestionSouris(self.systray.conf.dict[self.systray.mode])
+        self.systray.GS.start()
+
+    def save_mouvement(self,widget):
+        self.mouvement.save_to_file(pyautogui.prompt("nom du fichier?"))
+
+if __name__ == '__main__':
+    confWindow()
+    gtk.main()

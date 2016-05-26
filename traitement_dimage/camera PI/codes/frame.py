@@ -16,8 +16,9 @@ def find_angle(img):
     greenUpper = (149, 245, 255)
     frame = cv2.imread(img)
     print(frame.shape)
-    frame = imutils.resize(frame, width=600)
+    #frame = imutils.resize(frame, width=600)
     print(frame.shape)
+    width=frame.shape[1]
     hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
 
       # construct a mask for the color "green", then perform
@@ -52,13 +53,20 @@ def find_angle(img):
 
       # update the points queue
         print x
-        if ("Gauche" in img):
-            angle = (600-x)/11+17
+        if ("Bas_Gauche" in img or "Haut_Droite" in img):
+            angle = -((width-x)/(width/55.0)+17)
         else:
-            angle = x/11+17
+            angle = x/(width/55.0)+17
         #angle = float(math.atan(float((1)))*180/math.pi)
         print(angle)
         return angle
+
+def find_coord(a1,xc1,yc1,a2,xc2,yc2):
+    a1=a1*math.pi/180
+    a2=a2*math.pi/180
+    x= (yc1 - math.tan(a1)*xc1 - (yc2 - math.tan(a2)*xc2))/(math.tan(a2)-math.tan(a1))
+    y= math.tan(a1)*(x-xc1)+yc1
+    return x,y
 
   #angle = int(math.atan((y1-y2)/(x2-x1))*180/math.pi)
   #cv.PutText(img,str(angle),(int(x1)+50,(int(y2)+int(y1))/2),font,255)
@@ -79,8 +87,10 @@ if __name__ == '__main__':
 
     img = sys.argv[1]
     img2 = sys.argv[2]
-
     a1 = find_angle(img)
     a2 = find_angle(img2)
-
     print a1, a2
+    x,y = find_coord(a1, 0, 1080, a2+4, 1920,1080)
+    print x,y
+    x,y = find_coord(-30 , 0, 1080, 60, 1920,1080)
+    print x,y

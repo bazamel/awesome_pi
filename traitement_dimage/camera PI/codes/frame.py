@@ -7,17 +7,16 @@ import time
 import math
 import sys
 
+from Mouvement import Mouvements
 
 
 
-
-def find_angle(img):
+def find_angle_from_frame(frame, name):
+    if frame is None:
+        return
     greenLower = (55, 85, 10)
     greenUpper = (149, 245, 255)
-    frame = cv2.imread(img)
-    print(frame.shape)
     #frame = imutils.resize(frame, width=600)
-    print(frame.shape)
     width=frame.shape[1]
     hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
 
@@ -52,13 +51,57 @@ def find_angle(img):
           cv2.circle(frame, center, 5, (0, 0, 255), -1)
 
       # update the points queue
-        print x
+        if ("Bas_Gauche" in name or "Haut_Droite" in name):
+            angle = -((width-x)/(width/55.0)+17)
+        else:
+            angle = x/(width/55.0)+17
+        #angle = float(math.atan(float((1)))*180/math.pi)
+        return angle
+
+def find_angle(img):
+    greenLower = (55, 85, 10)
+    greenUpper = (149, 245, 255)
+    frame = cv2.imread(img)
+    #frame = imutils.resize(frame, width=600)
+    width=frame.shape[1]
+    hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+
+      # construct a mask for the color "green", then perform
+      # a series of dilations and erosions to remove any small
+      # blobs left in the mask
+    mask = cv2.inRange(hsv, greenLower, greenUpper)
+    mask = cv2.erode(mask, None, iterations=2)
+    mask = cv2.dilate(mask, None, iterations=2)
+        # find contours in the mask and initialize the current
+      # (x, y) center of the ball
+    cnts = cv2.findContours(mask.copy(), cv2.RETR_EXTERNAL,cv2.CHAIN_APPROX_SIMPLE)[-2]
+    center = None
+
+      # only proceed if at least one contour was found
+    if len(cnts) > 0:
+        # find the largest contour in the mask, then use
+        # it to compute the minimum enclosing circle and
+        # centroid
+        c = max(cnts, key=cv2.contourArea)
+        ((x, y), radius) = cv2.minEnclosingCircle(c)
+        M = cv2.moments(c)
+        x,y = (int(M["m10"] / M["m00"]), int(M["m01"] / M["m00"]))
+
+        center = (x,y)
+        # only proceed if the radius meets a minimum size
+        if radius > 5:
+          # draw the circle and centroid on the frame,
+          # then update the list of tracked points
+          cv2.circle(frame, (int(x), int(y)), int(radius),
+            (0, 255, 255), 2)
+          cv2.circle(frame, center, 5, (0, 0, 255), -1)
+
+      # update the points queue
         if ("Bas_Gauche" in img or "Haut_Droite" in img):
             angle = -((width-x)/(width/55.0)+17)
         else:
             angle = x/(width/55.0)+17
         #angle = float(math.atan(float((1)))*180/math.pi)
-        print(angle)
         return angle
 
 def find_coord(a1,xc1,yc1,a2,xc2,yc2):
@@ -85,12 +128,47 @@ def find_coord(a1,xc1,yc1,a2,xc2,yc2):
 #cv2.destroyAllWindows()
 if __name__ == '__main__':
 
-    img = sys.argv[1]
-    img2 = sys.argv[2]
-    a1 = find_angle(img)
-    a2 = find_angle(img2)
-    print a1, a2
-    x,y = find_coord(a1, 0, 1080, a2+4, 1920,1080)
-    print x,y
-    x,y = find_coord(-30 , 0, 1080, 60, 1920,1080)
-    print x,y
+    vid1 = sys.argv[1]
+    vid2 = sys.argv[2]
+    cam1 = cv2.VideoCapture(1)
+    cam2 = cv2.VideoCapture(2)
+
+    #i=0
+    #while (i<1*12):
+    #    (grabbed1, frame1) = cam1.read()
+    #    i=i+1
+
+    tab=[]
+    while True:
+
+        (grabbed1, frame1) = cam1.read()
+        (grabbed1, frame2) = cam2.read()
+        a1 = find_angle_from_frame(frame1, vid1)
+        a2 = find_angle_from_frame(frame2, vid2)
+        if(frame1 is not None):
+            cv2.imshow("Frame1", frame1)
+        if (frame2 is not None):
+            cv2.imshow("Frame2", frame2)
+
+        if (not (a1 is None or a2 is None)):
+            #print a1, a2
+            x,y = find_coord(a1, 0, 1080, a2, 1920,1080)
+            tab.append((x,y))
+            print tab
+            print x,y
+
+        key = cv2.waitKey(60) & 0xFF
+        if key == ord("q"):
+            print tab
+            supertab=[]
+            supertab.append(tab)
+            Mouv=Mouvements(supertab)
+            Mouv.save_to_svg("bidule.svg")
+            Mouvements.read_from_file("mouv_droite").save_to_svg("mouv_droite.svg")
+            print(Mouv.look_like(Mouvements.read_from_file("mouv_droite")))
+            break
+
+
+    cam1.release()
+    cam2.release()
+    cv2.destroyAllWindows()

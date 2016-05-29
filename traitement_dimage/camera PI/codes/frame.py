@@ -16,6 +16,7 @@ def find_angle_from_frame(frame, name):
         return
     greenLower = (55, 85, 10)
     greenUpper = (149, 245, 255)
+    
     #frame = imutils.resize(frame, width=600)
     width=frame.shape[1]
     hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
@@ -40,8 +41,10 @@ def find_angle_from_frame(frame, name):
         ((x, y), radius) = cv2.minEnclosingCircle(c)
         M = cv2.moments(c)
         x,y = (int(M["m10"] / M["m00"]), int(M["m01"] / M["m00"]))
-
         center = (x,y)
+        
+        # instantaneous velocity calculation
+        
         # only proceed if the radius meets a minimum size
         if radius > 5:
           # draw the circle and centroid on the frame,
@@ -56,8 +59,25 @@ def find_angle_from_frame(frame, name):
         else:
             angle = x/(width/55.0)+17
         #angle = float(math.atan(float((1)))*180/math.pi)
+        
         return angle
-
+    
+def check_touch(x,y,data):
+    if(x!=0 and y!=0):
+    # Distance calculation
+        if(len(data)==0):
+            data=[0,0,0]
+        dist = math.sqrt((math.pow((x-data[0]),2))+(math.pow((y-data[1]),2)))
+        #instantaneous velocity calculation pixel/seconde
+        vit = (dist/(time.clock()-data[2]))
+        #print time.clock()-data[2]
+        data = [x,y,time.clock()]
+        #threshold to be adjusted !!!!! 
+        if (vit<500):
+            return True,data
+        else: 
+            return False,data    
+    else: return False,data
 def find_angle(img):
     greenLower = (55, 85, 10)
     greenUpper = (149, 245, 255)
@@ -130,32 +150,36 @@ if __name__ == '__main__':
 
     vid1 = sys.argv[1]
     vid2 = sys.argv[2]
-    cam1 = cv2.VideoCapture(1)
-    cam2 = cv2.VideoCapture(2)
-
+    cam1 = cv2.VideoCapture(vid1)
+    cam2 = cv2.VideoCapture(vid2)
     #i=0
     #while (i<1*12):
     #    (grabbed1, frame1) = cam1.read()
     #    i=i+1
-
+    #data record ansx, ansy, anstime
+    data = []
     tab=[]
     while True:
 
         (grabbed1, frame1) = cam1.read()
         (grabbed1, frame2) = cam2.read()
+        
         a1 = find_angle_from_frame(frame1, vid1)
         a2 = find_angle_from_frame(frame2, vid2)
+        
         if(frame1 is not None):
             cv2.imshow("Frame1", frame1)
         if (frame2 is not None):
             cv2.imshow("Frame2", frame2)
-
         if (not (a1 is None or a2 is None)):
-            #print a1, a2
+            print a1, a2
             x,y = find_coord(a1, 0, 1080, a2, 1920,1080)
             tab.append((x,y))
             print tab
-            print x,y
+        #   touch,data=check_touch(x,y,data)
+        #   print(touch)
+        
+            #print x,y
 
         key = cv2.waitKey(60) & 0xFF
         if key == ord("q"):

@@ -13,6 +13,8 @@ from Mouvement import Mouvements
 import gestionAction
 from gestionsouris import gestionSouris
 import os
+import frame
+from frame import gestionCamera
 
 class conf:
     """docstring for """
@@ -220,30 +222,10 @@ class confWindow:
         self.systray.GS.stop()
         self.systray.GS.join()
         pyautogui.alert("appuyé sur entré lorsque vous êtes près a enregistrer")
-        oldx,oldy=pyautogui.position()
-        mouv=False
-        tab=[]
-        while True:
-            x,y=pyautogui.position()
-            if (not mouv) and (x!=oldx or y!=oldy):
-                mouv=True;
-                tab=[]
-            if mouv:
-                if(x==oldx and y==oldy):
-                    mouv=False
-                    allFinger=[]
-                    allFinger.append(tab)
-                    self.mouvement=Mouvements(allFinger)
-                    self.mouvement.save_to_svg("temp.svg")
-                    self.update_picture()
-                    break
-                else:
-                    tab.append((x,y))
-                    oldx=x
-                    oldy=y
-
-            time.sleep(0.03)
-        self.systray.GS = gestionSouris(self.systray.conf.dict[self.systray.mode])
+        self.mouvement=frame.getMouv()
+        self.mouvement.save_to_svg("temp.svg")
+        self.update_picture()
+        self.systray.GS = gestionCamera(self.systray.conf.dict[self.systray.mode])
         self.systray.GS.start()
 
     def save_mouvement(self,widget):

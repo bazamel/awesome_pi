@@ -6,7 +6,7 @@ import math
 
 class Mouvements():
     """docstring for """
-    def __init__(self, tabMouvementDoigts, sensibilite=35):
+    def __init__(self, tabMouvementDoigts, sensibilite=65):
         #1 tablepar doigt
         self.tabMouvementDoigts = tabMouvementDoigts
         self.nbrDoigt=len(tabMouvementDoigts)
@@ -83,13 +83,13 @@ class Mouvements():
                     #    break
 
                     #test pour voir si il n'y a pas des positions que l'on aurait loupé
-                    if meFaster and m<3 and k+m<len(mouv.tabMouvementDoigts[i])-1:
+                    if meFaster and m<4 and k+m<len(mouv.tabMouvementDoigts[i])-1:
                         m=m+1
-                    elif meFaster and l<3 and j+l<len(self.tabMouvementDoigts[i])-1:
+                    elif meFaster and l<4 and j+l<len(self.tabMouvementDoigts[i])-1:
                         l=l+1
-                    elif (not meFaster) and l<3 and j+l<len(self.tabMouvementDoigts[i])-1:
+                    elif (not meFaster) and l<4 and j+l<len(self.tabMouvementDoigts[i])-1:
                         l=l+1
-                    elif (not meFaster) and m<3 and k+m<len(mouv.tabMouvementDoigts[i])-1:
+                    elif (not meFaster) and m<4 and k+m<len(mouv.tabMouvementDoigts[i])-1:
                         m=m+1
                     else:
                         return False

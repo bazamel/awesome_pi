@@ -8,6 +8,7 @@ import pango
 import calibrage
 import conf
 from gestionsouris import gestionSouris
+from frame import gestionCamera
 import signal
 
 class SystrayIconApp:
@@ -23,7 +24,7 @@ class SystrayIconApp:
 		self.tray.connect('popup-menu', self.on_right_click)
 		self.tray.set_tooltip(('Sample tray app'))
 		self.conf=conf.conf.start_conf()
-		self.GS = gestionSouris(self.conf.dict[self.mode])
+		self.GS = gestionCamera(self.conf.dict[self.mode])
 		self.GS.start()
 
 
@@ -119,6 +120,7 @@ class SystrayIconApp:
 
 	def reload_conf(self):
 		self.conf=conf.conf.start_conf()
+		self.GS.edit_conf(self.conf.dict[self.mode])
 
 	def  show_calibrage_dialog(self, widget):
 		calibrage.calibrageWindows()

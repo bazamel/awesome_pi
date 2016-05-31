@@ -58,6 +58,24 @@ def find_angle_from_frame(frame, name):
         #angle = float(math.atan(float((1)))*180/math.pi)
         return angle
 
+
+def check_touch(x,y,data):
+    if(x!=0 and y!=0):
+    # Distance calculation
+        if(len(data)==0):
+            data=[0,0,0]
+        dist = math.sqrt((math.pow((x-data[0]),2))+(math.pow((y-data[1]),2)))
+        #instantaneous velocity calculation pixel/seconde
+        vit = (dist/(time.clock()-data[2]))
+        #print time.clock()-data[2]
+        data = [x,y,time.clock()]
+        #threshold to be adjusted !!!!!
+        if (vit<500):
+            return True,data
+        else:
+            return False,data
+    else: return False,data
+
 def find_angle(img):
     greenLower = (55, 85, 10)
     greenUpper = (149, 245, 255)
@@ -138,7 +156,9 @@ if __name__ == '__main__':
     #    (grabbed1, frame1) = cam1.read()
     #    i=i+1
 
+    data = []
     tab=[]
+    mouvbegin=False
     while True:
 
         (grabbed1, frame1) = cam1.read()
@@ -153,9 +173,16 @@ if __name__ == '__main__':
         if (not (a1 is None or a2 is None)):
             #print a1, a2
             x,y = find_coord(a1, 0, 1080, a2, 1920,1080)
-            tab.append((x,y))
-            print tab
-            print x,y
+
+            touch,data=check_touch(x,y,data)
+            print(touch)
+            if touch:
+                mouvbegin=True
+            if mouvbegin:
+                    tab.append((x,y))
+                    print tab
+        else:
+            mouvbegin=False
 
         key = cv2.waitKey(60) & 0xFF
         if key == ord("q"):
@@ -167,6 +194,7 @@ if __name__ == '__main__':
             Mouvements.read_from_file("mouv_droite").save_to_svg("mouv_droite.svg")
             print(Mouv.look_like(Mouvements.read_from_file("mouv_droite")))
             break
+        time.sleep(0.08)
 
 
     cam1.release()

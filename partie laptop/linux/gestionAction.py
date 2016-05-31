@@ -20,11 +20,14 @@ class gestionAction():
         for excpt in self.exception.keys():
             if (excpt(mouv)):
                 self.exception[excpt](mouv)
-                return
+                return True
 
         for filename in self.dict.keys():
             if (mouv.look_like(Mouvements.read_from_file(filename))):
                 self.dict[filename]()
+                return True
+
+        return False
 
 
     def save_to_file(self,filename):

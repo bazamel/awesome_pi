@@ -14,13 +14,21 @@ from threading import Thread, RLock
 
 from Mouvement import Mouvements
 
+from get_frame_from_arduino import ArduinoCam
+
 class gestionCamera(Thread):
     """docstring for """
-    def __init__(self, filename):
+
+    def __init__(self, filename, ipCam=None):
         Thread.__init__(self)
         self.stopped = False
         self.lock = RLock()
         self.edit_conf(filename)
+        self.ipCam=ipCam
+        for ip in self.ipCam:
+            self.arduinoCam=append(ArduinoCam(ip))
+        for cam in self.arduinoCam:
+            cam.start()
 
     def edit_conf(self,filename):
         with self.lock:
@@ -29,6 +37,9 @@ class gestionCamera(Thread):
 
     def stop(self):
         with self.lock:
+            for cam in self.arduinoCam:
+                cam.stop()
+                cam.join()
             self.stopped=True
 
     def isStopped(self):
@@ -60,7 +71,7 @@ class gestionCamera(Thread):
         #    i=i+1
         Mouv = None
         while (not self.isStopped()):
-            Mouv=getMouv(self)
+            Mouv=getMouv(self,ipCam=self.ipCam)
             if Mouv != None :
                 #Mouv.save_to_svg("bidule.svg")
                 with self.lock:
@@ -191,15 +202,16 @@ def compute_intersect(a1,xc1,yc1,a2,xc2,yc2):
     y= math.tan(a1)*(x-xc1)+yc1
     return (x,y)
 
-def getMouv(GC=None,mouv=None):
+def getMouv(GC=None,mouv=None, cam=None):
     size=pyautogui.size()
     poscam={"Bas_Gauche": (0,size[1]), "Bas_Droite": (size[0],size[1]), "Haut_Gauche": (0,0), "Haut_Droite": (size[0],0)}
-    vid1= "Bas_Gauche"
+    vid1= "Bas_Droite"
     vid2= "Haut_Droite"
     vid3= "Haut_Gauche"
-    cam1 = cv2.VideoCapture(1)
-    cam2 = cv2.VideoCapture(2)
-    cam3 = cv2.VideoCapture(3)
+    if (cam==None):
+        cam1 = cv2.VideoCapture(1)
+        cam2 = cv2.VideoCapture(2)
+        cam3 = cv2.VideoCapture(3)
 
     #i=0
     #while (i<1*12):
@@ -214,9 +226,14 @@ def getMouv(GC=None,mouv=None):
             if (GC.isStopped()):
                 break
 
-        (grabbed1, frame1) = cam1.read()
-        (grabbed2, frame2) = cam2.read()
-        (grabbed3, frame3) = cam3.read()
+        if (ipCam==None):
+            (grabbed1, frame1) = cam1.read()
+            (grabbed2, frame2) = cam2.read()
+            (grabbed3, frame3) = cam3.read()
+        else:
+            frame1=cam[0].get_frame()
+            frame2=cam[1].get_frame()
+            frame3=cam[2].get_frame()
 
         angles=[]
         a1 = find_angle_from_frame(frame1, vid1)
@@ -302,16 +319,19 @@ def compute_coord(coords):
 
 if __name__ == '__main__':
     size=pyautogui.size()
-    print size
     poscam={"Bas_Gauche": (0,size[1]), "Bas_Droite": (size[0],size[1]), "Haut_Gauche": (0,0), "Haut_Droite": (size[0],0)}
+
     vid1 = sys.argv[1]
     vid2 = sys.argv[2]
     vid3 = sys.argv[3]
-    cam1 = cv2.VideoCapture(1)
-    cam2 = cv2.VideoCapture(2)
-    cam3 = cv2.VideoCapture(3)
-
-    #i=0
+    if (len(sys.argv)<5):
+        cam1 = cv2.VideoCapture(1)
+        cam2 = cv2.VideoCapture(2)
+        cam3 = cv2.VideoCapture(3)
+    else:
+        cam1=ArduinoCam(sys.argv[4])
+        cam2=ArduinoCam(sys.argv[5])
+        cam3=ArduinoCam(sys.argv[6])
     #while (i<1*12):
     #    (grabbed1, frame1) = cam1.read()
     #    i=i+1
@@ -321,9 +341,14 @@ if __name__ == '__main__':
     mouvbegin=False
     while True:
 
-        (grabbed1, frame1) = cam1.read()
-        (grabbed2, frame2) = cam2.read()
-        (grabbed3, frame3) = cam3.read()
+        if(len(sys.argv)<5):
+            (grabbed1, frame1) = cam1.read()
+            (grabbed2, frame2) = cam2.read()
+            (grabbed3, frame3) = cam3.read()
+        else:
+            frame1 = cam1.get_frame()
+            frame2 = cam2.get_frame()
+            frame3 = cam3.get_frame()
 
         angles=[]
         a1 = find_angle_from_frame(frame1, vid1)
@@ -385,10 +410,15 @@ if __name__ == '__main__':
             Mouv.save_to_svg("bidule.svg")
             Mouvements.read_from_file("presentation/mouv_droite").save_to_svg("mouv_droite.svg")
             print(Mouv.look_like(Mouvements.read_from_file("presentation/mouv_droite")))
+            if (len(sys.argv)>5):
+                cam1.stop()
+                cam2.stop()
+                cam3.stop()
             break
+
         time.sleep(0.08)
 
 
-    cam1.release()
-    cam2.release()
+    #cam1.release()
+    #cam2.release()
     cv2.destroyAllWindows()

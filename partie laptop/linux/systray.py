@@ -11,20 +11,23 @@ from gestionsouris import gestionSouris
 from frame import gestionCamera
 import signal
 
+import sys
+
 class SystrayIconApp:
 	ECRTACT=0
 	TCHPAD=1
 	PRNOTE=2
 
 
-	def __init__(self):
+	def __init__(self, ipCam=None):
 		self.mode = SystrayIconApp.ECRTACT
 		self.tray = gtk.StatusIcon()
 		self.tray.set_from_file("icon.png")
 		self.tray.connect('popup-menu', self.on_right_click)
 		self.tray.set_tooltip(('Sample tray app'))
 		self.conf=conf.conf.start_conf()
-		self.GS = gestionCamera(self.conf.dict[self.mode])
+		self.ipCam=ipCam
+		self.GS = gestionCamera(self.conf.dict[self.mode],self.ipCam)
 		self.GS.start()
 
 
@@ -132,7 +135,16 @@ class SystrayIconApp:
 
 
 if __name__ == "__main__":
-	myapp=SystrayIconApp()
+	ipCam = []
+	i=1
+
+	if (len(sys.argv)>3):
+		while(i<len(sys.argv)):
+			ipCam.append(sys.argv[i])
+			i+=1
+	else:
+		ipCam=None
+	myapp=SystrayIconApp(ipCam)
 	gtk.gdk.threads_init()
 	gtk.threads_enter()
 	gtk.main()

@@ -225,7 +225,7 @@ class confWindow:
         self.mouvement=frame.getMouv()
         self.mouvement.save_to_svg("temp.svg")
         self.update_picture()
-        self.systray.GS = gestionCamera(self.systray.conf.dict[self.systray.mode])
+        self.systray.GS = gestionCamera(self.systray.conf.dict[self.systray.mode], self.systray.ipCam)
         self.systray.GS.start()
 
     def save_mouvement(self,widget):

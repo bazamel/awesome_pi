@@ -25,8 +25,9 @@ class gestionCamera(Thread):
         self.lock = RLock()
         self.edit_conf(filename)
         self.ipCam=ipCam
+        self.arduinoCam=[]
         for ip in self.ipCam:
-            self.arduinoCam=append(ArduinoCam(ip))
+            self.arduinoCam.append(ArduinoCam(ip))
         for cam in self.arduinoCam:
             cam.start()
 
@@ -71,7 +72,7 @@ class gestionCamera(Thread):
         #    i=i+1
         Mouv = None
         while (not self.isStopped()):
-            Mouv=getMouv(self,ipCam=self.ipCam)
+            Mouv=getMouv(self,cam=self.arduinoCam)
             if Mouv != None :
                 #Mouv.save_to_svg("bidule.svg")
                 with self.lock:
@@ -205,13 +206,11 @@ def compute_intersect(a1,xc1,yc1,a2,xc2,yc2):
 def getMouv(GC=None,mouv=None, cam=None):
     size=pyautogui.size()
     poscam={"Bas_Gauche": (0,size[1]), "Bas_Droite": (size[0],size[1]), "Haut_Gauche": (0,0), "Haut_Droite": (size[0],0)}
-    vid1= "Bas_Droite"
-    vid2= "Haut_Droite"
-    vid3= "Haut_Gauche"
+    vid= ["Bas_Droite", "Haut_Droite", "Haut_Gauche", "Bas_Gauche"]
+    mycam=[]
     if (cam==None):
-        cam1 = cv2.VideoCapture(1)
-        cam2 = cv2.VideoCapture(2)
-        cam3 = cv2.VideoCapture(3)
+        for i in Range(1,4):
+            mycam.append(cv2.VideoCapture(i))
 
     #i=0
     #while (i<1*12):
@@ -225,35 +224,21 @@ def getMouv(GC=None,mouv=None, cam=None):
         if(GC !=None):
             if (GC.isStopped()):
                 break
-
-        if (ipCam==None):
-            (grabbed1, frame1) = cam1.read()
-            (grabbed2, frame2) = cam2.read()
-            (grabbed3, frame3) = cam3.read()
+        #print cam
+        frame=[]
+        if (cam==None):
+            for c in mycam:
+                frame.append(c.read()[1])
         else:
-            frame1=cam[0].get_frame()
-            frame2=cam[1].get_frame()
-            frame3=cam[2].get_frame()
+            for c in cam:
+                frame.append(c.get_frame())
 
         angles=[]
-        a1 = find_angle_from_frame(frame1, vid1)
-        if (a1 is not None):
-            angles.append((a1,vid1))
-        a2 = find_angle_from_frame(frame2, vid2)
-        if (a2 is not None):
-            angles.append((a2,vid2))
-        a3 = find_angle_from_frame(frame3, vid3)
-        if (a3 is not None):
-            angles.append((a3,vid3))
-
-        #print a1,a2,a3
-        #if(frame1 is not None):
-        #    cv2.imshow("Frame1", frame1)
-        #if (frame2 is not None):
-        #    cv2.imshow("Frame2", frame2)
-
-        #if (frame3 is not None):
-        #    cv2.imshow("Frame3", frame3)
+        for i in range(len(frame)):
+            if (frame[i]!=None):
+                a = find_angle_from_frame(frame[i], vid[i])
+                if (a!=None):
+                    angles.append((a, vid[i]))
 
 
         if (len(angles)>=3):
@@ -296,8 +281,8 @@ def getMouv(GC=None,mouv=None, cam=None):
                 supertab=[]
                 supertab.append(tab)
                 Mouv=Mouvements(supertab)
-                cam1.release()
-                cam2.release()
+                #cam1.release()
+                #cam2.release()
                 return Mouv
 
         time.sleep(0.05)
@@ -320,18 +305,19 @@ def compute_coord(coords):
 if __name__ == '__main__':
     size=pyautogui.size()
     poscam={"Bas_Gauche": (0,size[1]), "Bas_Droite": (size[0],size[1]), "Haut_Gauche": (0,0), "Haut_Droite": (size[0],0)}
-
-    vid1 = sys.argv[1]
-    vid2 = sys.argv[2]
-    vid3 = sys.argv[3]
-    if (len(sys.argv)<5):
-        cam1 = cv2.VideoCapture(1)
-        cam2 = cv2.VideoCapture(2)
-        cam3 = cv2.VideoCapture(3)
+    vid=[]
+    cam=[]
+    if (len(sys.argv)<6):
+        for i in range(1,len(sys.argv)):
+            vid.append(sys.argv[i])
+            cam.append(cv2.VideoCapture(i))
     else:
-        cam1=ArduinoCam(sys.argv[4])
-        cam2=ArduinoCam(sys.argv[5])
-        cam3=ArduinoCam(sys.argv[6])
+        for i in range(1, (len(sys.argv)+1)/2):
+            vid.append(sys.argv[i])
+        for i in range(1+len(vid), len(sys.argv)):
+            cam.append(ArduinoCam(sys.argv[i]))
+        for c in cam:
+            c.start()
     #while (i<1*12):
     #    (grabbed1, frame1) = cam1.read()
     #    i=i+1
@@ -341,34 +327,25 @@ if __name__ == '__main__':
     mouvbegin=False
     while True:
 
-        if(len(sys.argv)<5):
-            (grabbed1, frame1) = cam1.read()
-            (grabbed2, frame2) = cam2.read()
-            (grabbed3, frame3) = cam3.read()
+        frame=[]
+        if(len(sys.argv)<6):
+            for c in cam:
+                frame.append(c.read()[1])
         else:
-            frame1 = cam1.get_frame()
-            frame2 = cam2.get_frame()
-            frame3 = cam3.get_frame()
+            for c in cam:
+                frame.append(c.get_frame())
 
         angles=[]
-        a1 = find_angle_from_frame(frame1, vid1)
-        if (a1 is not None):
-            angles.append((a1,vid1))
-        a2 = find_angle_from_frame(frame2, vid2)
-        if (a2 is not None):
-            angles.append((a2,vid2))
-        a3 = find_angle_from_frame(frame3, vid3)
-        if (a3 is not None):
-            angles.append((a3,vid3))
+        for i in range(len(frame)):
+            if (frame[i]!=None):
+                a = find_angle_from_frame(frame[i], vid[i])
+                if (a!=None):
+                    angles.append((a, vid[i]))
 
-        print a1,a2,a3
-        if(frame1 is not None):
-            cv2.imshow("Frame1", frame1)
-        if (frame2 is not None):
-            cv2.imshow("Frame2", frame2)
-
-        if (frame3 is not None):
-            cv2.imshow("Frame3", frame3)
+        #print a1,a2,a3
+        for i in range(len(frame)):
+            if(frame[i] is not None):
+                cv2.imshow("Frame"+`i`, frame[i])
 
 
         if (len(angles)>=3):
@@ -403,17 +380,17 @@ if __name__ == '__main__':
 
         key = cv2.waitKey(60) & 0xFF
         if key == ord("q"):
-            print tab
-            supertab=[]
-            supertab.append(tab)
-            Mouv=Mouvements(supertab)
-            Mouv.save_to_svg("bidule.svg")
-            Mouvements.read_from_file("presentation/mouv_droite").save_to_svg("mouv_droite.svg")
-            print(Mouv.look_like(Mouvements.read_from_file("presentation/mouv_droite")))
-            if (len(sys.argv)>5):
-                cam1.stop()
-                cam2.stop()
-                cam3.stop()
+            if (len(tab)!=0):
+                supertab=[]
+                supertab.append(tab)
+                Mouv=Mouvements(supertab)
+                Mouv.save_to_svg("bidule.svg")
+                Mouvements.read_from_file("presentation/mouv_droite").save_to_svg("mouv_droite.svg")
+                print(Mouv.look_like(Mouvements.read_from_file("presentation/mouv_droite")))
+            if (len(sys.argv)>6):
+                for c in cam:
+                    c.stop()
+                    c.join()
             break
 
         time.sleep(0.08)

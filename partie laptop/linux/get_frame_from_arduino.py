@@ -3,7 +3,7 @@ import urllib
 import numpy as np
 import sys
 
-from threading import Thread, sRLock
+from threading import Thread, RLock
 
 class ArduinoCam(Thread):
     """docstring for """
@@ -11,7 +11,7 @@ class ArduinoCam(Thread):
         Thread.__init__(self)
         self.stopped = False
         self.ip = ip
-        self.lock = Rlock()
+        self.lock = RLock()
         self.frame = None
 
     def stop(self):
@@ -23,20 +23,20 @@ class ArduinoCam(Thread):
             return self.stopped
 
     def get_frame(self):
-        with lock:
+        with self.lock:
             return self.frame
 
     def run(self):
         stream=urllib.urlopen('http://'+self.ip+':8080/?action=stream')
         bytes=''
         while (not self.isStopped()):
-            bytes+=stream.read(50000)
+            bytes+=stream.read(512)
             a = bytes.find('\xff\xd8')
             b = bytes.find('\xff\xd9')
             if a!=-1 and b!=-1:
                 jpg = bytes[a:b+2]
                 bytes= bytes[b+2:]
-                with lock:
+                with self.lock:
                     self.frame = cv2.imdecode(np.fromstring(jpg, dtype=np.uint8),cv2.IMREAD_COLOR) #CV_LOAD_IMAGE_COLOR
 
 

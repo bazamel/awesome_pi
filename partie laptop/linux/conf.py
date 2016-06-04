@@ -16,6 +16,8 @@ import os
 import frame
 from frame import gestionCamera
 
+from get_frame_from_arduino import ArduinoCam
+
 class conf:
     """docstring for """
     def __init__(self,dict={SystrayIconApp.ECRTACT : "ecrTactDef.conf", SystrayIconApp.PRNOTE : "prNoteDef.conf", SystrayIconApp.TCHPAD : "tchPadDef.conf"  }):
@@ -222,9 +224,17 @@ class confWindow:
         self.systray.GS.stop()
         self.systray.GS.join()
         pyautogui.alert("appuyé sur entré lorsque vous êtes près a enregistrer")
-        self.mouvement=frame.getMouv()
+        cam =[]
+        for ip in self.systray.ipCam:
+            cam.append(ArduinoCam(ip))
+        for c in cam:
+            c.start()
+        self.mouvement=frame.getMouv(cam=cam)
         self.mouvement.save_to_svg("temp.svg")
         self.update_picture()
+        for c in cam:
+            c.stop()
+            c.join()
         self.systray.GS = gestionCamera(self.systray.conf.dict[self.systray.mode], self.systray.ipCam)
         self.systray.GS.start()
 

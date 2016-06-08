@@ -138,11 +138,10 @@ if __name__ == "__main__":
 	ipCam = []
 	i=1
 
-	if (len(sys.argv)>3):
-		while(i<len(sys.argv)):
-			ipCam.append(sys.argv[i])
-			i+=1
-	else:
+	while(i<len(sys.argv)):
+		ipCam.append(sys.argv[i])
+		i+=1
+	if(len(sys.argv)==1):
 		ipCam=None
 	myapp=SystrayIconApp(ipCam)
 	gtk.gdk.threads_init()

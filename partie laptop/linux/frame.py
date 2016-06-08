@@ -220,6 +220,7 @@ def getMouv(GC=None,mouv=None, cam=None):
     data = []
     tab=[]
     mouvbegin=False
+    angledebut=[]
     while True:
         if(GC !=None):
             if (GC.isStopped()):
@@ -240,8 +241,14 @@ def getMouv(GC=None,mouv=None, cam=None):
                 if (a!=None):
                     angles.append((a, vid[i]))
 
+        if len(angledebut)!=0:
+            anglesbis=[]
+            for angle in angles:
+                if (angle[1] in angledebut):
+                    anglesbis.append(angle)
+            angles=anglesbis
 
-        if (len(angles)>=3):
+        if (len(angles)>=2):
             #print len(angles)
             i=0
             coords=[]
@@ -266,6 +273,9 @@ def getMouv(GC=None,mouv=None, cam=None):
             if touch:
                 mouvbegin=True
             if mouvbegin:
+                    if len(tab)==0:
+                        for angle in angles:
+                            angledebut.append(angle[1])
                     tab.append((x,y))
                     #supertab=[]
                     #supertab.append(tab)

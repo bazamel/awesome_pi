@@ -19,17 +19,21 @@ from get_frame_from_arduino import ArduinoCam
 class gestionCamera(Thread):
     """docstring for """
 
-    def __init__(self, filename, ipCam=None):
+    def __init__(self, filename, ipCam=None, nbrCam=None):
         Thread.__init__(self)
         self.stopped = False
         self.lock = RLock()
         self.edit_conf(filename)
-        self.ipCam=ipCam
-        self.arduinoCam=[]
-        for ip in self.ipCam:
-            self.arduinoCam.append(ArduinoCam(ip))
-        for cam in self.arduinoCam:
-            cam.start()
+        self.arduinoCam=None
+        self.nbrCam=nbrCam
+        if ipCam!=None:
+            self.ipCam=ipCam
+            self.arduinoCam=[]
+            for ip in self.ipCam:
+                self.arduinoCam.append(ArduinoCam(ip))
+            for cam in self.arduinoCam:
+                cam.start()
+
 
     def edit_conf(self,filename):
         with self.lock:
@@ -38,9 +42,10 @@ class gestionCamera(Thread):
 
     def stop(self):
         with self.lock:
-            for cam in self.arduinoCam:
-                cam.stop()
-                cam.join()
+            if self.arduinoCam!=None:
+                for cam in self.arduinoCam:
+                    cam.stop()
+                    cam.join()
             self.stopped=True
 
     def isStopped(self):
@@ -72,7 +77,7 @@ class gestionCamera(Thread):
         #    i=i+1
         Mouv = None
         while (not self.isStopped()):
-            Mouv=getMouv(self,cam=self.arduinoCam)
+            Mouv=getMouv(self,cam=self.arduinoCam, nbrCam=self.nbrCam)
             if Mouv != None :
                 #Mouv.save_to_svg("bidule.svg")
                 with self.lock:
@@ -128,6 +133,7 @@ def find_angle_from_frame(frame, name):
         else:
             angle = x/(width/55.0)+17
         #angle = float(math.atan(float((1)))*180/math.pi)
+        #print name, angle
         return angle
 
 
@@ -135,14 +141,14 @@ def check_touch(x,y,data):
     if(x!=0 and y!=0):
     # Distance calculation
         if(len(data)==0):
-            data=[0,0,0]
+            return False, [x , y, time.clock()]
         dist = math.sqrt((math.pow((x-data[0]),2))+(math.pow((y-data[1]),2)))
         #instantaneous velocity calculation pixel/seconde
         vit = (dist/(time.clock()-data[2]))
         #print time.clock()-data[2]
         data = [x,y,time.clock()]
         #threshold to be adjusted !!!!!
-        if (vit<500):
+        if (vit<250):
             return True,data
         else:
             return False,data
@@ -191,7 +197,7 @@ def find_angle(img):
             angle = -((width-x)/(width/55.0)+17)
         else:
             angle = x/(width/55.0)+17
-        #angle = float(math.atan(float((1)))*180/math.pi)
+        #angle = float(math.atan(float((1)))*180/math.pi
         return angle
 
 def compute_intersect(a1,xc1,yc1,a2,xc2,yc2):
@@ -203,13 +209,15 @@ def compute_intersect(a1,xc1,yc1,a2,xc2,yc2):
     y= math.tan(a1)*(x-xc1)+yc1
     return (x,y)
 
-def getMouv(GC=None,mouv=None, cam=None):
+def getMouv(GC=None,mouv=None, cam=None, nbrCam=None):
+    if nbrCam == None:
+        nbrCam=4
     size=pyautogui.size()
     poscam={"Bas_Gauche": (0,size[1]), "Bas_Droite": (size[0],size[1]), "Haut_Gauche": (0,0), "Haut_Droite": (size[0],0)}
     vid= ["Bas_Droite", "Haut_Droite", "Haut_Gauche", "Bas_Gauche"]
     mycam=[]
     if (cam==None):
-        for i in Range(1,4):
+        for i in range(1,nbrCam+1):
             mycam.append(cv2.VideoCapture(i))
 
     #i=0
@@ -221,8 +229,10 @@ def getMouv(GC=None,mouv=None, cam=None):
     tab=[]
     mouvbegin=False
     angledebut=[]
+    errorframe = 0
     while True:
-        if(GC !=None):
+        #print errorframe
+        if(GC != None):
             if (GC.isStopped()):
                 break
         #print cam
@@ -241,6 +251,7 @@ def getMouv(GC=None,mouv=None, cam=None):
                 if (a!=None):
                     angles.append((a, vid[i]))
 
+        #il faut que toujours les meme camera capte le meme mouvement
         if len(angledebut)!=0:
             anglesbis=[]
             for angle in angles:
@@ -248,12 +259,13 @@ def getMouv(GC=None,mouv=None, cam=None):
                     anglesbis.append(angle)
             angles=anglesbis
 
-        if (len(angles)>=2):
-            #print len(angles)
+        if (len(angles)>=3):
+            #print angles
             i=0
             coords=[]
             while(i<len(angles)-1):
                 j = i+1
+                #calcul de toute les intersection
                 while(j < len(angles)):
                     if ((("Haut_Droite" in angles[i][1]) and ("Bas_Gauche" in angles[j][1])) or (("Haut_Droite" in angles[j][1]) and ("Bas_Gauche" in angles[i][1])) or (("Bas_Droite" in angles[i][1] ) and ( "Haut_Gauche" in angles[j][1])) or (("Bas_Droite" in angles[j][1]) and ( "Haut_Gauche" in angles[i][1]))):
                         j=j+1
@@ -264,10 +276,12 @@ def getMouv(GC=None,mouv=None, cam=None):
                         coords.append(coord)
                     j=j+1
                 i=i+1
+
             if (len(coords)==0):
                 continue
-            x,y=compute_coord(coords)
 
+            x,y=compute_coord(coords)
+            errorframe=0
             touch,data=check_touch(x,y,data)
             #print(touch)
             if touch:
@@ -276,24 +290,33 @@ def getMouv(GC=None,mouv=None, cam=None):
                     if len(tab)==0:
                         for angle in angles:
                             angledebut.append(angle[1])
+                    #print x,y
                     tab.append((x,y))
-                    #supertab=[]
-                    #supertab.append(tab)
-                    #Mouv=Mouvements(supertab)
+                    #if mouv!=None:
+                    #    mouv.add_new_pos_to_finger(0,(x,y))
+                    #    return mouv
+                    #else:
+                        #supertab=[]
+                        #supertab.append(tab)
+                        #mouv=Mouvements(supertab)
+                        #return Mouv
+
                     #cam1.release()
                     #cam2.release()
-                    #return Mouv
                     #print tab
         else:
-            mouvbegin=False
-            if (len(tab)!=0):
+            if(errorframe<3 and mouvbegin):
+                errorframe+=1
+            else:
                 #print tab
-                supertab=[]
-                supertab.append(tab)
-                Mouv=Mouvements(supertab)
-                #cam1.release()
-                #cam2.release()
-                return Mouv
+                mouvbegin=False
+                if (len(tab)!=0):
+                    supertab=[]
+                    supertab.append(tab)
+                    mouv=Mouvements(supertab)
+                    return mouv
+                #else:
+                #    return mouv
 
         time.sleep(0.05)
 
@@ -303,7 +326,7 @@ def getMouv(GC=None,mouv=None, cam=None):
 def compute_coord(coords):
     x=0
     y=0
-    print coords
+    #print coords
     for coord in coords:
         x+=coord[0]/len(coords)
         y+=coord[1]/len(coords)
@@ -335,6 +358,7 @@ if __name__ == '__main__':
     data = []
     tab=[]
     mouvbegin=False
+    angledebut=[]
     while True:
 
         frame=[]
@@ -357,6 +381,12 @@ if __name__ == '__main__':
             if(frame[i] is not None):
                 cv2.imshow("Frame"+`i`, frame[i])
 
+        if len(angledebut)!=0:
+            anglesbis=[]
+            for angle in angles:
+                if (angle[1] in angledebut):
+                    anglesbis.append(angle)
+            angles=anglesbis
 
         if (len(angles)>=3):
             print len(angles)

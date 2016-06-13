@@ -42,6 +42,8 @@ class ArduinoCam(Thread):
 def get_frame_from_ip(ip):
     stream=urllib.urlopen('http://'+ip+':8080/?action=stream')
     bytes=''
+    frame=None
+
     while (True):
         bytes+=stream.read(512)
         a = bytes.find('\xff\xd8')
@@ -49,8 +51,11 @@ def get_frame_from_ip(ip):
         if a!=-1 and b!=-1:
             jpg = bytes[a:b+2]
             bytes= bytes[b+2:]
-            with lock:
-                frame = cv2.imdecode(np.fromstring(jpg, dtype=np.uint8),cv2.IMREAD_COLOR) #CV_LOAD_IMAGE_COLOR
+            frame = cv2.imdecode(np.fromstring(jpg, dtype=np.uint8),cv2.IMREAD_COLOR) #CV_LOAD_IMAGE_COLOR
+            return frame
+
+
+
 
 
 if __name__ == '__main__':

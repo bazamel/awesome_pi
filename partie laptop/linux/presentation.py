@@ -5,6 +5,3 @@ def fleche_droite():
 
 def fleche_gauche():
     pyautogui.press('left')
-
-def unDoigt(mouv):
-    return mouv.nbrDoigt==1

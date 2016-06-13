@@ -46,14 +46,7 @@ class gestionAction():
             conf=unpickler.load()
             return conf
 
-def printYolo():
-    print "Yolo"
 
-def left_click():
-    pyautogui.click()
-
-def right_click():
-    pyautogui.rightClick()
 
 def rien(mouv):
     return

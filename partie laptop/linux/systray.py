@@ -10,6 +10,7 @@ import conf
 from gestionsouris import gestionSouris
 from frame import gestionCamera
 import signal
+import argparse
 
 import sys
 
@@ -19,7 +20,7 @@ class SystrayIconApp:
 	PRNOTE=2
 
 
-	def __init__(self, ipCam=None):
+	def __init__(self, ipCam=None,nbrCam=None):
 		self.mode = SystrayIconApp.ECRTACT
 		self.tray = gtk.StatusIcon()
 		self.tray.set_from_file("icon.png")
@@ -27,7 +28,8 @@ class SystrayIconApp:
 		self.tray.set_tooltip(('Sample tray app'))
 		self.conf=conf.conf.start_conf()
 		self.ipCam=ipCam
-		self.GS = gestionCamera(self.conf.dict[self.mode],self.ipCam)
+		self.nbrCam=nbrCam
+		self.GS = gestionCamera(self.conf.dict[self.mode],self.ipCam, self.nbrCam)
 		self.GS.start()
 
 
@@ -134,16 +136,31 @@ class SystrayIconApp:
 		gtk.main_quit()
 
 
+def get_arguments():
+	ap= argparse.ArgumentParser()
+	ap.add_argument('-u', '--usb',required=False,help="use the Webcam in USB",action="store_true")
+	ap.add_argument('-c', '--cam', required=False,help="number of webcam required default 4" )
+	args = vars(ap.parse_args())
+	return args
+
+
 if __name__ == "__main__":
-	ipCam = []
+	args = get_arguments()
+	ipCam= None
+	if not args['usb']:
+		ipCam = ["cambasdroite.local","camhautdroite.local","camhautgauche.local","cambasgauche.local"]
+		if args['cam']:
+			ipCam =ipCam[:int(args['cam'])]
 	i=1
 
-	while(i<len(sys.argv)):
-		ipCam.append(sys.argv[i])
-		i+=1
-	if(len(sys.argv)==1):
-		ipCam=None
-	myapp=SystrayIconApp(ipCam)
+	#while(i<len(sys.argv)):
+	#	ipCam.append(sys.argv[i])
+	#	i+=1
+	#if(len(sys.argv)==1):
+	#	ipCam=None
+	print args['usb'], args['cam']
+
+	myapp=SystrayIconApp(ipCam,int(args['cam']))
 	gtk.gdk.threads_init()
 	gtk.threads_enter()
 	gtk.main()

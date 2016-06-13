@@ -225,17 +225,20 @@ class confWindow:
         self.systray.GS.join()
         pyautogui.alert("appuyé sur entré lorsque vous êtes près a enregistrer")
         cam =[]
-        for ip in self.systray.ipCam:
-            cam.append(ArduinoCam(ip))
-        for c in cam:
-            c.start()
-        self.mouvement=frame.getMouv(cam=cam)
+        if (self.systray.ipCam!=None):
+            for ip in self.systray.ipCam:
+                cam.append(ArduinoCam(ip))
+            for c in cam:
+                c.start()
+            self.mouvement=frame.getMouv(cam=cam)
+        else:
+            self.mouvement=frame.getMouv(nbrCam=self.systray.nbrCam)
         self.mouvement.save_to_svg("temp.svg")
         self.update_picture()
         for c in cam:
             c.stop()
             c.join()
-        self.systray.GS = gestionCamera(self.systray.conf.dict[self.systray.mode], self.systray.ipCam)
+        self.systray.GS = gestionCamera(self.systray.conf.dict[self.systray.mode], self.systray.ipCam, self.systray.nbrCam)
         self.systray.GS.start()
 
     def save_mouvement(self,widget):

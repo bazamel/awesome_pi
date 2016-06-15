@@ -7,6 +7,8 @@ import time
 import math
 import sys
 
+from affichageDroite import Screen
+
 import pyautogui
 
 import gestionAction
@@ -18,9 +20,14 @@ from get_frame_from_arduino import ArduinoCam
 
 class gestionCamera(Thread):
     """docstring for """
-
-    def __init__(self, filename, ipCam=None, nbrCam=None):
+    correctionAngle={"Bas_Gauche": 0, "Bas_Droite": 0, "Haut_Gauche": 0, "Haut_Droite": 0}
+    correction=False
+    def __init__(self, filename, ipCam=None, nbrCam=None,debug=None):
         Thread.__init__(self)
+        self.affichageDroite=None
+        self.cw=None
+        if debug!=False:
+            self.affichageDroite=Screen()
         self.stopped = False
         self.lock = RLock()
         self.edit_conf(filename)
@@ -34,6 +41,17 @@ class gestionCamera(Thread):
             for cam in self.arduinoCam:
                 cam.start()
 
+    def toggleAffichageDroite(self):
+        with self.lock:
+            if self.affichageDroite==None:
+                self.affichageDroite=Screen()
+            else:
+                self.affichageDroite.quit()
+                self.affichageDroite=None
+
+    def calibrationMode(self,cw):
+        with self.lock:
+            self.cw=cw
 
     def edit_conf(self,filename):
         with self.lock:
@@ -129,9 +147,9 @@ def find_angle_from_frame(frame, name):
 
       # update the points queue
         if ("Bas_Gauche" in name or "Haut_Droite" in name):
-            angle = -((width-x)/(width/55.0)+17)
+            angle = -((width-x)/(width/55.0)+17)+gestionCamera.correctionAngle[name]
         else:
-            angle = x/(width/55.0)+17
+            angle = x/(width/55.0)+17+gestionCamera.correctionAngle[name]
         #angle = float(math.atan(float((1)))*180/math.pi)
         #print name, angle
         return angle
@@ -200,6 +218,11 @@ def find_angle(img):
         #angle = float(math.atan(float((1)))*180/math.pi
         return angle
 
+def compute_angle_from_pos(x1,y1,x2,y2):
+    a=math.atan((y1-y2)/(x1-x2))
+    a=a*180/math.pi
+    return a
+
 def compute_intersect(a1,xc1,yc1,a2,xc2,yc2):
     if(a1==a2):
         return None
@@ -245,80 +268,108 @@ def getMouv(GC=None,mouv=None, cam=None, nbrCam=None):
                 frame.append(c.get_frame())
 
         angles=[]
+        if (GC!= None and GC.cw!=None):
+            time.sleep(1)
         for i in range(len(frame)):
-            if (frame[i]!=None):
+            if (frame[i]!=None or not (gestionCamera.correction and gestionCamera.correctionAngle[vid[i]]==0)):
                 a = find_angle_from_frame(frame[i], vid[i])
                 if (a!=None):
                     angles.append((a, vid[i]))
-
-        #il faut que toujours les meme camera capte le meme mouvement
-        if len(angledebut)!=0:
-            anglesbis=[]
+        if (GC!= None and GC.affichageDroite!=None):
+            line=[]
             for angle in angles:
-                if (angle[1] in angledebut):
-                    anglesbis.append(angle)
-            angles=anglesbis
+                    line.append(((int)(angle[0]),poscam[angle[1]][0],poscam[angle[1]][1]))
+            GC.affichageDroite.createline(line)
 
-        if (len(angles)>=3):
-            #print angles
-            i=0
-            coords=[]
-            while(i<len(angles)-1):
-                j = i+1
-                #calcul de toute les intersection
-                while(j < len(angles)):
-                    if ((("Haut_Droite" in angles[i][1]) and ("Bas_Gauche" in angles[j][1])) or (("Haut_Droite" in angles[j][1]) and ("Bas_Gauche" in angles[i][1])) or (("Bas_Droite" in angles[i][1] ) and ( "Haut_Gauche" in angles[j][1])) or (("Bas_Droite" in angles[j][1]) and ( "Haut_Gauche" in angles[i][1]))):
-                        j=j+1
-                        continue
+        if (GC!= None and GC.cw!=None):
+            if (len(angles)>=nbrCam-1):
+                cx=size[0]/2.0
+                cy=size[1]/2.0
+                for angle in angles:
+                    a = compute_angle_from_pos(cx,cy,poscam[angle[1]][0],poscam[angle[1]][1])
+                    gestionCamera.correctionAngle[angle[1]]=a-angle[0]
+                    print gestionCamera.correctionAngle
+                gestionCamera.correction=True
+                GC.cw.quit()
+                print "end"
+                GC.calibrationMode(None)
 
-                    coord = compute_intersect(angles[i][0],poscam[angles[i][1]][0],poscam[angles[i][1]][1], angles[j][0], poscam[angles[j][1]][0],poscam[angles[j][1]][1])
-                    if coord is not None:
-                        coords.append(coord)
-                    j=j+1
-                i=i+1
-
-            if (len(coords)==0):
-                continue
-
-            x,y=compute_coord(coords)
-            errorframe=0
-            touch,data=check_touch(x,y,data)
-            #print(touch)
-            if touch:
-                mouvbegin=True
-            if mouvbegin:
-                    if len(tab)==0:
-                        for angle in angles:
-                            angledebut.append(angle[1])
-                    #print x,y
-                    tab.append((x,y))
-                    #if mouv!=None:
-                    #    mouv.add_new_pos_to_finger(0,(x,y))
-                    #    return mouv
-                    #else:
-                        #supertab=[]
-                        #supertab.append(tab)
-                        #mouv=Mouvements(supertab)
-                        #return Mouv
-
-                    #cam1.release()
-                    #cam2.release()
-                    #print tab
         else:
-            if(errorframe<3 and mouvbegin):
-                errorframe+=1
+            #il faut que toujours les meme camera capte le meme mouvement
+            if len(angledebut)!=0:
+                anglesbis=[]
+                for angle in angles:
+                    if (angle[1] in angledebut):
+                        anglesbis.append(angle)
+                angles=anglesbis
+
+            if (len(angles)>=3):
+                #print angles
+                i=0
+                coords=[]
+                while(i<len(angles)-1):
+                    j = i+1
+                    #calcul de toute les intersection
+                    while(j < len(angles)):
+                        if ((("Haut_Droite" in angles[i][1]) and ("Bas_Gauche" in angles[j][1])) or (("Haut_Droite" in angles[j][1]) and ("Bas_Gauche" in angles[i][1])) or (("Bas_Droite" in angles[i][1] ) and ( "Haut_Gauche" in angles[j][1])) or (("Bas_Droite" in angles[j][1]) and ( "Haut_Gauche" in angles[i][1]))):
+                            j=j+1
+                            continue
+
+                        coord = compute_intersect(angles[i][0],poscam[angles[i][1]][0],poscam[angles[i][1]][1], angles[j][0], poscam[angles[j][1]][0],poscam[angles[j][1]][1])
+                        if coord is not None:
+                            coords.append(coord)
+                        j=j+1
+                    i=i+1
+
+                if (len(coords)==0):
+                    continue
+
+                x,y=compute_coord(coords)
+                errorframe=0
+                touch,data=check_touch(x,y,data)
+                #print(touch)
+                if touch:
+                    mouvbegin=True
+                if mouvbegin:
+                        if len(tab)==0:
+                            for angle in angles:
+                                angledebut.append(angle[1])
+                        #print x,y
+                        tab.append((x,y))
+                        if len(tab)>15:
+                            mouvbegin=False
+                            supertab=[]
+                            supertab.append(tab)
+                            mouv=Mouvements(supertab)
+                            return mouv
+
+                        #if mouv!=None:
+                        #    mouv.add_new_pos_to_finger(0,(x,y))
+                        #    return mouv
+                        #else:
+                            #supertab=[]
+                            #supertab.append(tab)
+                            #mouv=Mouvements(supertab)
+                            #return Mouv
+
+                        #cam1.release()
+                        #cam2.release()
+                        #print tab
             else:
-                #print tab
-                mouvbegin=False
-                if (len(tab)!=0):
-                    supertab=[]
-                    supertab.append(tab)
-                    mouv=Mouvements(supertab)
-                    return mouv
+                if(errorframe<10 and mouvbegin):
+                    errorframe+=1
+                else:
+                    #print tab
+                    mouvbegin=False
+                    if (len(tab)!=0):
+                        supertab=[]
+                        supertab.append(tab)
+                        mouv=Mouvements(supertab)
+                        return mouv
                 #else:
                 #    return mouv
 
-        time.sleep(0.05)
+        #time.sleep(0.05)
 
 
     cv2.destroyAllWindows()

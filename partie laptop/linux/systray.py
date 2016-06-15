@@ -20,16 +20,17 @@ class SystrayIconApp:
 	PRNOTE=2
 
 
-	def __init__(self, ipCam=None,nbrCam=None):
+	def __init__(self, ipCam=None,nbrCam=None,debug=None):
 		self.mode = SystrayIconApp.ECRTACT
 		self.tray = gtk.StatusIcon()
 		self.tray.set_from_file("icon.png")
 		self.tray.connect('popup-menu', self.on_right_click)
 		self.tray.set_tooltip(('Sample tray app'))
 		self.conf=conf.conf.start_conf()
+		self.debug=debug
 		self.ipCam=ipCam
 		self.nbrCam=nbrCam
-		self.GS = gestionCamera(self.conf.dict[self.mode],self.ipCam, self.nbrCam)
+		self.GS = gestionCamera(self.conf.dict[self.mode],self.ipCam, self.nbrCam,debug)
 		self.GS.start()
 
 
@@ -80,6 +81,11 @@ class SystrayIconApp:
 		menu.append(conf)
 		conf.connect('activate', self.on_conf_click)
 
+		afficheD=gtk.MenuItem("affichage des droites")
+		afficheD.show()
+		menu.append(afficheD)
+		afficheD.connect('activate', self.toggleAffichageDroite)
+
 		# add quit item
 		quit = gtk.MenuItem("Quit")
 		quit.show()
@@ -111,6 +117,8 @@ class SystrayIconApp:
 		n.show()
 		self.GS.edit_conf(self.conf.dict[self.mode])
 
+	def toggleAffichageDroite(self,widget):
+		self.GS.toggleAffichageDroite()
 
 	def on_prNote_click(self,widget):
 		self.mode = SystrayIconApp.PRNOTE
@@ -128,7 +136,8 @@ class SystrayIconApp:
 		self.GS.edit_conf(self.conf.dict[self.mode])
 
 	def  show_calibrage_dialog(self, widget):
-		calibrage.calibrageWindows()
+		cw = calibrage.calibrageWindows()
+		self.GS.calibrationMode(cw)
 
 	def on_quit(self,widget):
 		self.GS.stop()
@@ -140,6 +149,7 @@ def get_arguments():
 	ap= argparse.ArgumentParser()
 	ap.add_argument('-u', '--usb',required=False,help="use the Webcam in USB",action="store_true")
 	ap.add_argument('-c', '--cam', required=False,help="number of webcam required default 4" )
+	ap.add_argument('-d', '--debug', required=False,help="screen of debug", action="store_true")
 	args = vars(ap.parse_args())
 	return args
 
@@ -151,7 +161,6 @@ if __name__ == "__main__":
 		ipCam = ["cambasdroite.local","camhautdroite.local","camhautgauche.local","cambasgauche.local"]
 		if args['cam']:
 			ipCam =ipCam[:int(args['cam'])]
-	i=1
 
 	#while(i<len(sys.argv)):
 	#	ipCam.append(sys.argv[i])
@@ -160,7 +169,10 @@ if __name__ == "__main__":
 	#	ipCam=None
 	print args['usb'], args['cam']
 
-	myapp=SystrayIconApp(ipCam,int(args['cam']))
+	if (args['cam']==None):
+		args['cam']=4
+
+	myapp=SystrayIconApp(ipCam,int(args['cam']),args['debug'])
 	gtk.gdk.threads_init()
 	gtk.threads_enter()
 	gtk.main()

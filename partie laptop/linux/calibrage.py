@@ -2,29 +2,36 @@ import pygtk
 pygtk.require('2.0')
 import gtk, sys, cairo
 from math import pi
+import cv2
+from get_frame_from_arduino import ArduinoCam
+import pyautogui
+from frame import find_angle_from_frame
+from threading import Thread, RLock
 
-class calibrageWindows:
+
+class calibrageWindows():
+
     def __init__(self):
-        win = gtk.Window()
-        win.set_decorated(False)
-        win.set_icon_from_file("icon.png")
+        self.win = gtk.Window()
+        self.win.set_decorated(False)
+        self.win.set_icon_from_file("icon.png")
 
         # Makes the window paintable, so we can draw directly on it
-        width = gtk.gdk.screen_width()
-        height = gtk.gdk.screen_height()
-        print width, height
-        win.set_app_paintable(True)
-        win.set_size_request(width, height)
+
+        self.win.set_app_paintable(True)
+        self.win.fullscreen()
 
         # This sets the windows colormap, so it supports transparency.
         # This will only work if the wm support alpha channel
-        screen = win.get_screen()
+        screen = self.win.get_screen()
         rgba = screen.get_rgba_colormap()
-        win.set_colormap(rgba)
+        self.win.set_colormap(rgba)
+        self.win.connect('expose-event', self.expose)
 
-        win.connect('expose-event', self.expose)
+        self.win.show()
 
-        win.show()
+    def quit(self):
+        self.win.destroy()
 
     def expose (self,widget, event):
         cr = widget.window.cairo_create()
@@ -42,7 +49,7 @@ class calibrageWindows:
         cr.set_source_rgba(1,0.0,0.0,1)
         print widget.get_size()
         cr.arc(widget.get_size()[0]/2,widget.get_size()[1]/2,
-               10,0,pi*2)
+               15,0,pi*2)
         cr.fill()
 
 if __name__ == "__main__":

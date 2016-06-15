@@ -89,6 +89,9 @@ class confWindow:
         self.listMouvFunc = interface.get_object("listMouvFunc")
         self.add_item_to_list()
 
+        self.listMouvFunc2 = interface.get_object("listMouvFunc2")
+        self.add_item_to_list2()
+
         interface.connect_signals(self)
 
         #ComboBox init
@@ -128,6 +131,25 @@ class confWindow:
             entry.set_text(func)
             fileChooser.set_filename(filename)
 
+    def add_item_to_list2(self, widget=None, func1=None, func2=None):
+        if (widget!=None):
+            self.confFileChooser.set_active(len(self.storeconf)-1)
+            if widget.get_parent()!=self.listMouvFunc2.get_children()[len(self.listMouvFunc2.get_children())-1]:
+                return
+        entry = gtk.Entry()
+        entry2 = gtk.Entry()
+        entry.connect("changed",self.add_item_to_list2)
+        hbox = gtk.HBox(True)
+        hbox.add(entry)
+        hbox.add(entry2)
+        self.listMouvFunc2.add(hbox)
+        hbox.show()
+        entry.show()
+        entry2.show()
+        if (func1 is not None and func2 is not None):
+            entry.set_text(func1)
+            entry2.set_text(func2)
+
 
     def cfg_changed(self,widget):
         self.cfgFileChooser.set_active(len(self.store)-1)
@@ -136,12 +158,19 @@ class confWindow:
     def conf_choose_changed(self, widget):
         file=widget.get_active_text()
         if file!="nouveau" and file is not None:
+            for child in self.listMouvFunc2.get_children():
+                self.listMouvFunc2.remove(child)
             for child in self.listMouvFunc.get_children():
                 self.listMouvFunc.remove(child)
             GA = gestionAction.gestionAction.read_from_file(file+".conf")
+            for excep in GA.exception.keys():
+                func = GA.exception[excep]
+                self.add_item_to_list2(None, excep.__module__+"."+excep.__name__,func.__module__+"."+func.__name__)
             for key in GA.dict.keys():
                 func=GA.dict[key]
                 self.add_item_to_list(None,"mouv/"+key,func.__module__+"."+func.__name__)
+            self.add_item_to_list(None)
+            self.add_item_to_list2(None)
 
     def cfg_choose_changed(self, widget):
         file=widget.get_active_text()
@@ -170,9 +199,10 @@ class confWindow:
 
     def save_conf(self,widget):
         dict={}
+        excpt={}
         for child in self.listMouvFunc.get_children():
             c=child.get_children()
-            if (c[0].get_filename()==None):
+            if (c[0].get_filename()==None or len(c[1].get_text().split("."))<2):
                 continue
             file = c[0].get_filename().rsplit("mouv/",1)[1]
             stringFunc=c[1].get_text()
@@ -181,7 +211,23 @@ class confWindow:
             m=__import__(module)
             f=getattr(m,funcname)
             dict[file]=f
-        GA = gestionAction.gestionAction(dict)
+
+        for child in self.listMouvFunc2.get_children():
+            c=child.get_children()
+            if (len(c[0].get_text().split("."))<2 or len(c[1].get_text().split("."))<2):
+                continue
+            module1 = c[0].get_text().split(".")[0]
+            funcname1 = c[0].get_text().split(".")[1]
+            m1=__import__(module1)
+            f1=getattr(m1,funcname1)
+
+            module2=c[1].get_text().split(".")[0]
+            funcname2=c[1].get_text().split(".")[1]
+            m2=__import__(module2)
+            f2=getattr(m2,funcname2)
+            excpt[f1]=f2
+
+        GA = gestionAction.gestionAction(dict,excpt)
         namefile=pyautogui.prompt("nom du fichier?")
         if (namefile=="personalisé" or namefile=="default"):
             pyautogui.alert("interdit de sauvegarder au nom personalisé ou default")
@@ -198,6 +244,13 @@ class confWindow:
             pyautogui.alert("interdit de sauvegarder au nom personalisé ou default")
             return
         config.save_to_file(file+".cfg")
+        config.use_this_conf()
+        self.systray.reload_conf()
+        self.init_list_cfg()
+
+    def use_cfg(self,widget):
+        dict={SystrayIconApp.ECRTACT : self.fileEcrTact.get_filename().rsplit("conf/",1)[1] , SystrayIconApp.PRNOTE : self.filePrNote.get_filename().rsplit("conf/",1)[1], SystrayIconApp.TCHPAD :self.fileTchPad.get_filename().rsplit("conf/",1)[1]   }
+        config = conf(dict)
         config.use_this_conf()
         self.systray.reload_conf()
         self.init_list_cfg()
@@ -238,7 +291,7 @@ class confWindow:
         for c in cam:
             c.stop()
             c.join()
-        self.systray.GS = gestionCamera(self.systray.conf.dict[self.systray.mode], self.systray.ipCam, self.systray.nbrCam)
+        self.systray.GS = gestionCamera(self.systray.conf.dict[self.systray.mode], self.systray.ipCam, self.systray.nbrCam, self.systray.debug)
         self.systray.GS.start()
 
     def save_mouvement(self,widget):

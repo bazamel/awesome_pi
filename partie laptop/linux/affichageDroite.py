@@ -11,6 +11,8 @@ class Screen():
         self.win.destroy()
 
     def __init__(self):
+        self.position=None
+        self.droites=None
         self.win = gtk.Window()
         self.win.fullscreen()
         self.win.set_app_paintable(True)
@@ -24,6 +26,9 @@ class Screen():
 
     def setDroite(self,droites):
         self.droites=droites
+
+    def setPositionSouris(self,position):
+        self.position=position
 
     def expose(self,widget,event):
         cr = widget.window.cairo_create()
@@ -53,6 +58,16 @@ class Screen():
                     cr.line_to(x2,y2)
                     cr.stroke()
 
+        if self.position!=None:
+            cr.set_source_rgb(0,0,1)
+            cr.arc(self.position[0], self.position[1],
+                   15,0,math.pi*2)
+            cr.fill()
+            #self.position=None
+
+    def affichePositionSouris(self,position):
+        self.setPositionSouris(position)
+        self.drawing_area.queue_draw()
 
     def createline(self,droites):
         self.setDroite(droites)

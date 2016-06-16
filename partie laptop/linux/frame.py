@@ -275,6 +275,7 @@ def getMouv(GC=None,mouv=None, cam=None, nbrCam=None):
                 a = find_angle_from_frame(frame[i], vid[i])
                 if (a!=None):
                     angles.append((a, vid[i]))
+
         if (GC!= None and GC.affichageDroite!=None):
             line=[]
             for angle in angles:
@@ -285,9 +286,10 @@ def getMouv(GC=None,mouv=None, cam=None, nbrCam=None):
             if (len(angles)>=nbrCam-1):
                 cx=size[0]/2.0
                 cy=size[1]/2.0
+                correctionTermine=True
                 for angle in angles:
                     a = compute_angle_from_pos(cx,cy,poscam[angle[1]][0],poscam[angle[1]][1])
-                    gestionCamera.correctionAngle[angle[1]]=a-angle[0]
+                    gestionCamera.correctionAngle[angle[1]]+=a-angle[0]
                     print gestionCamera.correctionAngle
                 gestionCamera.correction=True
                 GC.cw.quit()
@@ -323,8 +325,9 @@ def getMouv(GC=None,mouv=None, cam=None, nbrCam=None):
 
                 if (len(coords)==0):
                     continue
-
                 x,y=compute_coord(coords)
+                if (GC!= None and GC.affichageDroite!=None):
+                    GC.affichageDroite.affichePositionSouris((x,y))
                 errorframe=0
                 touch,data=check_touch(x,y,data)
                 #print(touch)
@@ -336,7 +339,7 @@ def getMouv(GC=None,mouv=None, cam=None, nbrCam=None):
                                 angledebut.append(angle[1])
                         #print x,y
                         tab.append((x,y))
-                        if len(tab)>15:
+                        if len(tab)>25:
                             mouvbegin=False
                             supertab=[]
                             supertab.append(tab)
@@ -369,7 +372,7 @@ def getMouv(GC=None,mouv=None, cam=None, nbrCam=None):
                 #else:
                 #    return mouv
 
-        #time.sleep(0.05)
+        time.sleep(0.05)
 
 
     cv2.destroyAllWindows()
@@ -432,6 +435,8 @@ if __name__ == '__main__':
             if(frame[i] is not None):
                 cv2.imshow("Frame"+`i`, frame[i])
 
+        print angles
+
         if len(angledebut)!=0:
             anglesbis=[]
             for angle in angles:
@@ -440,7 +445,7 @@ if __name__ == '__main__':
             angles=anglesbis
 
         if (len(angles)>=3):
-            print len(angles)
+
             i=0
             coords=[]
             while(i<len(angles)-1):
@@ -460,7 +465,7 @@ if __name__ == '__main__':
             x,y=compute_coord(coords)
 
             touch,data=check_touch(x,y,data)
-            print(touch)
+            #print(touch)
             if touch:
                 mouvbegin=True
             if mouvbegin:

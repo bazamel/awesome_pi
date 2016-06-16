@@ -138,7 +138,7 @@ class confWindow:
                 return
         entry = gtk.Entry()
         entry2 = gtk.Entry()
-        entry.connect("changed",self.add_item_to_list2)
+
         hbox = gtk.HBox(True)
         hbox.add(entry)
         hbox.add(entry2)
@@ -149,6 +149,7 @@ class confWindow:
         if (func1 is not None and func2 is not None):
             entry.set_text(func1)
             entry2.set_text(func2)
+        entry.connect("changed",self.add_item_to_list2)
 
 
     def cfg_changed(self,widget):

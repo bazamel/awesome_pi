@@ -28,6 +28,9 @@ def one_finger_dont_move(mouv):
     return True
 
 
+def drag(mouv):
+    pyautogui.moveTo(mouv.tabMouvementDoigts[0][0][0],mouv.tabMouvementDoigts[0][0][1])
+    pyautogui.dragTo(mouv.tabMouvementDoigts[0][-1][0],mouv.tabMouvementDoigts[0][-1][1])
 
 def click(mouv):
     x=0

@@ -17,15 +17,18 @@ class gestionAction():
         self.exception=exception
 
     def compare_to_mouvement(self,mouv):
+        #print mouv[1]
         for excpt in self.exception.keys():
-            if (excpt(mouv)):
-                self.exception[excpt](mouv)
+            if (excpt(mouv[0])):
+                self.exception[excpt](mouv[0])
                 return True
 
-        for filename in self.dict.keys():
-            if (mouv.look_like(Mouvements.read_from_file(filename))):
-                self.dict[filename]()
-                return True
+        if mouv[1]==True:
+            #print mouv[0].tabMouvementDoigts
+            for filename in self.dict.keys():
+                if (mouv[0].look_like(Mouvements.read_from_file(filename))):
+                    self.dict[filename]()
+                    return True
 
         return False
 

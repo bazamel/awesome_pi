@@ -1,3 +1,5 @@
+# coding=utf-8
+
 from collections import deque
 import numpy as np
 import argparse
@@ -33,6 +35,8 @@ class gestionCamera(Thread):
         self.edit_conf(filename)
         self.arduinoCam=None
         self.nbrCam=nbrCam
+        if self.nbrCam == None:
+            self.nbrCam=4
         if ipCam!=None:
             self.ipCam=ipCam
             self.arduinoCam=[]
@@ -40,6 +44,16 @@ class gestionCamera(Thread):
                 self.arduinoCam.append(ArduinoCam(ip))
             for cam in self.arduinoCam:
                 cam.start()
+        #intit de getmouv
+        self.mouv=None
+        self.mouvend=True
+        self.angledebut=[]
+
+        vid= ["Bas_Droite", "Haut_Droite", "Haut_Gauche", "Bas_Gauche"]
+        self.CalcAngle=calculAngle(self.arduinoCam, vid, self.nbrCam)
+        self.CalcAngle.start()
+
+
 
     def toggleAffichageDroite(self):
         with self.lock:
@@ -48,6 +62,120 @@ class gestionCamera(Thread):
             else:
                 self.affichageDroite.quit()
                 self.affichageDroite=None
+
+    def getMouv(self):
+        size=pyautogui.size()
+        #position des cam
+        poscam={"Bas_Gauche": (0,size[1]), "Bas_Droite": (size[0],size[1]), "Haut_Gauche": (0,0), "Haut_Droite": (size[0],0)}
+        #ordre des camera
+        vid= ["Bas_Droite", "Haut_Droite", "Haut_Gauche", "Bas_Gauche"]
+        data = []
+        errorframe = 0
+
+        while not self.isStopped():
+            toofast=False
+            if (self.cw!=None):
+                time.sleep(1)
+
+            angles = self.CalcAngle.getAngles()
+            if len(angles)>4:
+                toofast=True
+                angles=[]
+
+            #affichage des droites pour le debug
+            if (self.affichageDroite!=None):
+                line=[]
+                for angle in angles:
+                        line.append(((int)(angle[0]),poscam[angle[1]][0],poscam[angle[1]][1]))
+                self.affichageDroite.createline(line)
+
+            #calcul pour la calibration
+            if (self.cw!=None):
+                if (len(angles)>=self.nbrCam-1):
+                    cx=size[0]/2.0
+                    cy=size[1]/2.0
+                    correctionTermine=True
+                    for angle in angles:
+                        a = compute_angle_from_pos(cx,cy,poscam[angle[1]][0],poscam[angle[1]][1])
+                        gestionCamera.correctionAngle[angle[1]]+=a-angle[0]
+                        print gestionCamera.correctionAngle
+                    gestionCamera.correction=True
+                    self.cw.quit()
+                    print "end"
+                    self.calibrationMode(None)
+
+            else:
+                #il faut que toujours les meme camera capte le meme mouvement
+                if len(self.angledebut)!=0:
+                    anglesbis=[]
+                    for angle in angles:
+                        if (angle[1] in self.angledebut):
+                            anglesbis.append(angle)
+                    angles=anglesbis
+                if (len(angles)>=3 and len(angles)<=4):
+                    #print angles
+                    #print angles
+                    i=0
+                    coords=[]
+                    #calcul de toute les intersection
+                    while(i<len(angles)-1):
+                        j = i+1
+
+                        while(j < len(angles)):
+                            if ((("Haut_Droite" in angles[i][1]) and ("Bas_Gauche" in angles[j][1])) or (("Haut_Droite" in angles[j][1]) and ("Bas_Gauche" in angles[i][1])) or (("Bas_Droite" in angles[i][1] ) and ( "Haut_Gauche" in angles[j][1])) or (("Bas_Droite" in angles[j][1]) and ( "Haut_Gauche" in angles[i][1]))):
+                                j=j+1
+                                continue
+
+                            coord = compute_intersect(angles[i][0],poscam[angles[i][1]][0],poscam[angles[i][1]][1], angles[j][0], poscam[angles[j][1]][0],poscam[angles[j][1]][1])
+                            if coord is not None:
+                                coords.append(coord)
+                            j=j+1
+                        i=i+1
+
+                    if (len(coords)==0):
+                        continue
+                    #calcul de la position
+                    x,y=compute_coord(coords)
+                    #affichage positions souris
+                    if (self.affichageDroite!=None):
+                        self.affichageDroite.affichePositionSouris((x,y))
+                    errorframe=0
+                    touch=False
+                    if (self.mouvend):
+                        touch,data=check_touch(x,y,data)
+                    else:
+                        touch=True
+                    #si l'on a touché la surface
+                    if touch:
+                        self.mouvend=False
+                    if not self.mouvend:
+                            if self.mouv==None:
+                                for angle in angles:
+                                    self.angledebut.append(angle[1])
+                            #print x,y
+                            if self.mouv==None:
+                                self.mouv=Mouvements([[]])
+                            #print self.mouvend
+                            self.mouv.add_new_pos_to_finger(0,(x,y))
+                            #print self.mouv.tabMouvementDoigts
+                            return
+
+                else:
+                    #print len(angles)
+                    if(errorframe<60 and not self.mouvend):
+                        errorframe+=1
+                    else:
+                        if not toofast:
+                            self.mouvend=True
+                            self.angledebut=[]
+                            if self.mouv!=None:
+                                return
+
+            #time.sleep(0.05)
+
+
+        cv2.destroyAllWindows()
+
 
     def calibrationMode(self,cw):
         with self.lock:
@@ -64,6 +192,8 @@ class gestionCamera(Thread):
                 for cam in self.arduinoCam:
                     cam.stop()
                     cam.join()
+            self.CalcAngle.stop()
+            self.CalcAngle.join()
             self.stopped=True
 
     def isStopped(self):
@@ -71,39 +201,81 @@ class gestionCamera(Thread):
             return self.stopped
 
 
-
-      #angle = int(math.atan((y1-y2)/(x2-x1))*180/math.pi)
-      #cv.PutText(img,str(angle),(int(x1)+50,(int(y2)+int(y1))/2),font,255)
-
-    #cv2.line(frame,(720,1280), center, (255,0,0), 2)
-    #cv2.line(frame,(600,700), center, (255,0,0), 2)
-      # loop over the set of tracked points
-    #cv2.imshow("Frame", frame)
-    #key = cv2.waitKey(60) & 0xFF
-
-      # if the 'q' key is pressed, stop the loop
-
-
-    # cleanup the camera and close any open windows
-    #cv2.waitKey(0)
-    #cv2.destroyAllWindows()
-
     def run(self):
-        #i=0
-        #while (i<1*12):
-        #    (grabbed1, frame1) = cam1.read()
-        #    i=i+1
-        Mouv = None
         while (not self.isStopped()):
-            Mouv=getMouv(self,cam=self.arduinoCam, nbrCam=self.nbrCam)
-            if Mouv != None :
-                #Mouv.save_to_svg("bidule.svg")
-                with self.lock:
-                    if (self.GA.compare_to_mouvement(Mouv)):
-                        Mouv = None
+            self.getMouv()
+            if self.mouv != None :
+                #print self.mouv
+                val=self.GA.compare_to_mouvement((self.mouv, self.mouvend))
+                if (val and not self.mouvend):
+                    #print "coucou"
+                    tab=self.mouv.tabMouvementDoigts[0][-1]
+                    self.mouv=Mouvements([[tab]])
+                elif(val or self.mouvend):
+                    self.mouv=None
 
 
         cv2.destroyAllWindows()
+
+
+
+
+class calculAngle(Thread):
+    """docstring for """
+    def __init__(self, cam, nameCam, nbrCam):
+        Thread.__init__(self)
+        self.cam = cam
+        self.nameCam=nameCam
+        self.nbrCam=nbrCam
+        self.stopped = False
+        self.lock = RLock()
+        self.mycam=[]
+        self.angles=[]
+        #demmarer la capture usb si on est en usb
+        if (self.cam==None):
+            for i in range(1,self.nbrCam+1):
+                self.mycam.append(cv2.VideoCapture(i))
+
+    def stop(self):
+        with self.lock:
+            if self.cam!=None:
+                for cam in self.cam:
+                    cam.stop()
+                    cam.join()
+            self.stopped=True
+
+    def isStopped(self):
+        with self.lock:
+            return self.stopped
+
+    def getAngles(self):
+        with self.lock:
+            angles=self.angles
+            self.angles=[1,2,3,4,5,6,7,8,9,7]
+            return angles
+
+    def run(self):
+        while not self.isStopped():
+            #recuperation des frame
+            frame=[]
+            if (self.cam==None):
+                for c in self.mycam:
+                    frame.append(c.read()[1])
+            else:
+                for c in self.cam:
+                    frame.append(c.get_frame())
+
+            angles=[]
+            #calcul des angles
+            for i in range(len(frame)):
+                if (frame[i]!=None or not (gestionCamera.correction and gestionCamera.correctionAngle[vid[i]]==0)):
+                    a = find_angle_from_frame(frame[i], self.nameCam[i])
+                    if (a!=None):
+                        angles.append((a, self.nameCam[i]))
+            with self.lock:
+                self.angles=angles
+
+
 
 
 def find_angle_from_frame(frame, name):
@@ -166,7 +338,7 @@ def check_touch(x,y,data):
         #print time.clock()-data[2]
         data = [x,y,time.clock()]
         #threshold to be adjusted !!!!!
-        if (vit<250):
+        if (vit<500):
             return True,data
         else:
             return False,data
